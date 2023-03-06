@@ -12,7 +12,7 @@
 ## Project Group Members:
 
 * Zakwan Ashfaq Zian (201950250, zazian@mun.ca)
-* Group Member Name 2 (Student ID #, email)
+* Deep Vasantbhai Choudhary (201855905, dvchoudhary@mun.ca)
 
 ## Project Videos:
 
