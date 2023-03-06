@@ -11,7 +11,7 @@
 
 ## Project Group Members:
 
-* Group Member Name 1 (Student ID #, email)
+* Zakwan Ashfaq Zian (201950250, zazian@mun.ca)
 * Group Member Name 2 (Student ID #, email)
 
 ## Project Videos:
