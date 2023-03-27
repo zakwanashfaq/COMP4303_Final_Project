@@ -1,35 +1,21 @@
-# Starcraft Demo Instructions
+# STARTcraft
 
-For the project initial demo, you must record a narrated 3-5 minute video showing your project progress so far. I would like to see the following features implemented in the demo for each project type:
+Get started with Starcraft: BroodWar AI Development as fast as possible. 
 
-- Build-orders partially implemented with units being built toward a specific army goal
-- Enemy base is scouted at the beginning of the match and successfully found
-- An attack takes place on the enemy base, ideally doing some damage or winning a game
-- Whatever your chosen area of specialization was should be partially implemented
-- An explanation of how these things have been accomplished so far, and what features you have left to implement
-- Link to the video in the root project README.md file
+New to StarCraft or AI Programming? Watch the tutorial video(s): 
+* Starcraft AI Intro: https://www.youtube.com/watch?v=czhNqUxmLks
+* STARTcraft Tutorial: https://www.youtube.com/watch?v=FEEkO6__GKw
 
-This folder contains the following 3 directories:
+Currently Supported (more coming soon):
+* Windows / C++ Development using BWAPI
 
-```
-bin/ 
-  - must contain your compiled StarterBot.exe
-  - must contain any additional files you need in your bin dir
-  - do not include any visualstudio output debugging files such as .pdb files
+# Setup Instructions:
 
-src/ 
-  - must contain your bot source code
+## Windows / C++
 
-visualstudio/
-  - must contain your visual studio project files
-  - delete all temporary output vs directories, they contain massive files
-    - visualstudio/Release
-    - visualstudio/Debug
-    - visualstudio/.vs
-```
+STARTcraft comes with a StarterBot written in C++ using BWAPI 4.4.0. This repo comes with BWAPI, and uses Injectory to launch StarCraft with BWAPI, so Chaoslauncher is not required.
 
-Simply copy your `bin`, `src`, and `visualstudio` directories from your STARTcraft project into this directory.
-
-Notes: 
-- This entire submission should be no more than a few megabytes at most. 
-- Delete this folder if you are not doing the Starcraft project
+1. Download / Clone this repo to your computer
+2. Download and unzip [Starcraft Broodwar 1.16.1](http://www.cs.mun.ca/~dchurchill/startcraft/scbw_bwapi440.zip) to the included `starcraft` folder
+3. Run `bin/RunC++BotAndStarcraft.bat` which will launch the bot executable and Starcraft / BWAPI
+4. Open `visualstudio/StartCraft.sln` in Visual Studio 2022 to modify / recompile the code
