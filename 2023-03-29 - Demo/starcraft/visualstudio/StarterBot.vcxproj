@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\starterbot\AttackManager.h" />
+    <ClInclude Include="..\src\starterbot\GlobalManager.h" />
     <ClInclude Include="..\src\starterbot\Grid.hpp" />
     <ClInclude Include="..\src\starterbot\MapTools.h" />
     <ClInclude Include="..\src\starterbot\ReplayParser.h" />
@@ -27,6 +29,8 @@
     <ClInclude Include="..\src\starterbot\Tools.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\starterbot\AttackManager.cpp" />
+    <ClCompile Include="..\src\starterbot\GlobalManager.cpp" />
     <ClCompile Include="..\src\starterbot\main.cpp" />
     <ClCompile Include="..\src\starterbot\MapTools.cpp" />
     <ClCompile Include="..\src\starterbot\ReplayParser.cpp" />

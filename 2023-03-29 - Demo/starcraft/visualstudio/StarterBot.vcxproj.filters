@@ -7,6 +7,8 @@
     <ClCompile Include="..\src\starterbot\StarterBot.cpp" />
     <ClCompile Include="..\src\starterbot\Tools.cpp" />
     <ClCompile Include="..\src\starterbot\Scout.cpp" />
+    <ClCompile Include="..\src\starterbot\AttackManager.cpp" />
+    <ClCompile Include="..\src\starterbot\GlobalManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\starterbot\Grid.hpp" />
@@ -15,5 +17,7 @@
     <ClInclude Include="..\src\starterbot\StarterBot.h" />
     <ClInclude Include="..\src\starterbot\Tools.h" />
     <ClInclude Include="..\src\starterbot\Scout.h" />
+    <ClInclude Include="..\src\starterbot\AttackManager.h" />
+    <ClInclude Include="..\src\starterbot\GlobalManager.h" />
   </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@
 #include "Grid.hpp"
 #include <unordered_map>
 #include "MapTools.h"
-// Inspired by UAlbertaBot, but not a copy-paste of it!
+
 
 class ScoutManager
 {

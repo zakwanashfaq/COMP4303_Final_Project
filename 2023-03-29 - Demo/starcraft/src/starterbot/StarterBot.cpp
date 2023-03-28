@@ -19,6 +19,7 @@ void StarterBot::onStart()
     // Call MapTools OnStart
     m_mapTools.onStart();
     scouthandler = new ScoutManager(&m_mapTools);
+    attackhandler = new AttackManager();
 }
 
 // Called on each frame of the game
@@ -28,9 +29,9 @@ void StarterBot::onFrame()
     m_mapTools.onFrame();
     
     scouthandler->update();
-
+    attackhandler->update();
     // send attack after specific number of probes being built
-    int num_of_probes_to_attack = 25;
+    int num_of_probes_to_attack = 30;
     if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) < num_of_probes_to_attack)
     {  
         // Train more workers so we can gather more income
@@ -49,7 +50,9 @@ void StarterBot::onFrame()
     // if enemy is found launch an attack
     if (scouthandler->getScoutStatus() == "enemy_found")
     {
-
+        BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
+        std::cout << "attacking the enemy!" << std::endl;
+        attackhandler->setAttackEnemyStatus(true);
     }
     // else keep gathering minerals and supplies
     else
@@ -214,7 +217,7 @@ void StarterBot::sendWorkerToScout()
 void StarterBot::trainAdditionalWorkers()
 {
     const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
-    const int workersWanted = 20;
+    const int workersWanted = 50;
     const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
     if (workersOwned < workersWanted)
     {
