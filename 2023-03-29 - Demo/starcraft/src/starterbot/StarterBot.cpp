@@ -2,6 +2,16 @@
 #include "Tools.h"
 #include "MapTools.h"
 
+// we use deque to store the build order for now,
+//we will be fetching build order from bin folder in next iteration.
+std::deque<std::pair<int, std::string>> buildOrder = { {8,"pylon"},{10,"gateway"},{11,"assimilator"},{12,"gateway"},{13,"zealot"},
+    {14,"pylon"},{17,"zealot"},{17,"zealot"},{17,"pylon"},
+    {18,"forge"},{19,"pylon"}, {20,"cybernetics_core"},{22,"pylon"},{23,"dragoon"},
+    {23,"dragoon"},{24,"photon_cannon"} };
+
+// we set the state of all build order to false initially
+bool isBuild[16] = { false };
+
 StarterBot::StarterBot()
 {
     
@@ -33,38 +43,28 @@ void StarterBot::onFrame()
     attackhandler->update();
     // send attack after specific number of probes being built
     int num_of_probes_to_attack = 30;
-    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) < num_of_probes_to_attack)
-    {  
-        // Train more workers so we can gather more income
-        trainAdditionalWorkers();
-    }
-    else 
+    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (scouthandler->getScoutStatus() == "enemy_found"))
     {
-        //sendProbesToFormALine();
+        BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
+        attackhandler->setAttackEnemyStatus(true);
     }
+  
+    // Train more workers so we can gather more income
+    trainAdditionalWorkers();
 
+    // perform build order production
+    buildOrderProduction();
+
+    // Send our idle workers to mine minerals so they don't just stand there
+    sendIdleWorkersToMinerals();
+
+    // Build more supply if we are going to run out soon
+    buildAdditionalSupply();
 
     if (scouthandler->getScout() == nullptr)
     {
         scoutForEnemyBase();
     }
-    // if enemy is found launch an attack
-    if (scouthandler->getScoutStatus() == "enemy_found")
-    {
-        BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
-        std::cout << "attacking the enemy!" << std::endl;
-        attackhandler->setAttackEnemyStatus(true);
-    }
-    // else keep gathering minerals and supplies
-    else
-    {
-        // Send our idle workers to mine minerals so they don't just stand there
-        sendIdleWorkersToMinerals();
-
-        // Build more supply if we are going to run out soon
-        buildAdditionalSupply(); 
-    }
-    
 
     // Draw unit health bars, which brood war unfortunately does not do
     Tools::DrawUnitHealthBars();
@@ -141,72 +141,282 @@ void StarterBot::sendIdleWorkersToMinerals()
     // Let's send all of our starting workers to the closest mineral to them
     // First we need to loop over all of the units that we (BWAPI::Broodwar->self()) own
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+
+    const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
+    //const int workersWanted = 38;
+    const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
+    int count = 0;
     for (auto& unit : myUnits)
     {
         // Check the unit type, if it is an idle worker, then we want to send it somewhere
         if (unit->getType().isWorker() && unit->isIdle())
         {
-            // Get the closest mineral to this worker unit
-            BWAPI::Unit closestMineral = Tools::GetClosestUnitTo(unit, BWAPI::Broodwar->getMinerals());
+            if (workersOwned == 17) {
+                sendWorkerToRefinery();
+            }
+            else {
+                // Get the closest mineral to this worker unit
+                BWAPI::Unit closestMineral = Tools::GetClosestUnitTo(unit, BWAPI::Broodwar->getMinerals());
 
-            // If a valid mineral was found, right click it with the unit in order to start harvesting
-            if (closestMineral) { unit->rightClick(closestMineral); }
+                // If a valid mineral was found, right click it with the unit in order to start harvesting
+                if (closestMineral) { unit->rightClick(closestMineral); }
+            }
         }
     }
 }
 
-void StarterBot::sendProbesToFormALine()
+void StarterBot::sendWorkerToRefinery()
 {
+    // First we need to loop over all of the units that we (BWAPI::Broodwar->self()) own
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
-    BWAPI::Position nexusPos = getNexusPosition();
-
-    // checking top, bottom, left and right to see where there is enough space 
-    // for 8 probes to queue in a straight line. 
-    const int WIDTH = 10, HEIGHT = 1, RADIUS = 100;
-    if (isAreaBuildable(BWAPI::Position(nexusPos.x - RADIUS, nexusPos.y + RADIUS), WIDTH, HEIGHT))
-    {
-        nexusPos = BWAPI::Position(nexusPos.x - RADIUS, nexusPos.y + RADIUS);
-    }
-    else if(isAreaBuildable(BWAPI::Position(nexusPos.x - RADIUS, nexusPos.y - RADIUS), WIDTH, HEIGHT))
-    {
-        nexusPos = BWAPI::Position(nexusPos.x - RADIUS, nexusPos.y - RADIUS);
-    }
-    else if (isAreaBuildable(BWAPI::Position(nexusPos.x - RADIUS - 15, nexusPos.y), WIDTH, HEIGHT))
-    {
-        nexusPos = BWAPI::Position(nexusPos.x - RADIUS - 15, nexusPos.y);
-    }
-    else if (isAreaBuildable(BWAPI::Position(nexusPos.x + (RADIUS * 2), nexusPos.y), WIDTH, HEIGHT))
-    {
-        nexusPos = BWAPI::Position(nexusPos.x + (RADIUS * 2), nexusPos.y);
-    } 
-    else 
-    {
-        BWAPI::Broodwar->printf("Could not find free position near Nexus in this map. Please restart the game and try again.");
-        return;
-    }
-
-    const int numProbes = getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe);
-
-    // spacing config variables
-    int probeIndex = 0;
-    const int spacing = 30;
-
-    // placing the probes in a line with the above configuration
+    int count = 0;
     for (auto& unit : myUnits)
     {
-        if (unit->getType() == BWAPI::UnitTypes::Protoss_Probe)
+        //send 3 workers to gas refinery
+        if (count < 3) {
+            // Check the unit type, if it is an worker, then we want to send it somewhere
+            if (unit->getType().isWorker())
+            {
+                // Get the closest refinery to this worker unit
+                BWAPI::Unit closestRefinery = Tools::GetClosestUnitTo(unit, BWAPI::Broodwar->getStaticGeysers());
+                // If a valid static geyser was found, right click it with the unit in order to start collecting
+                if (closestRefinery) { unit->rightClick(closestRefinery); count++; }
+            }
+        }
+
+    }
+}
+
+
+void StarterBot::buildOrderProduction()
+{
+    const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
+    const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
+
+    int minerals = BWAPI::Broodwar->self()->minerals();
+    int gas = BWAPI::Broodwar->self()->gas();
+
+    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+
+    for (size_t i = 0; i < buildOrder.size(); i++)
+    {
+        if (workersOwned > buildOrder[i].first && isBuild[i] == false)
         {
-            const BWAPI::Position newPosition(nexusPos.x + (probeIndex * spacing), nexusPos.y /* + (probeIndex * spacing)*/);
-            unit->move(newPosition);
-            probeIndex++;
+            if (buildOrder[i].second == "pylon")
+            {
+                if (minerals > 100)
+                {
+                    const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
+                    const bool startedBuilding = Tools::BuildBuilding(supplyProviderType);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
+                        isBuild[i] = true;
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "assimilator")
+            {
+                if (minerals > 100)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Assimilator);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Assimilator");
+                        isBuild[i] = true;
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "gateway")
+            {
+                if (minerals > 150)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Gateway);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Gateway");
+                        isBuild[i] = true;
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "forge")
+            {
+                if (minerals > 150)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Forge);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Forge");
+                        isBuild[i] = true;
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "zealot")
+            {
+                if (minerals > 100) {
+                    int count = 0;
+                    for (auto& unit : myUnits)
+                    {
+                        if (count < 1)
+                        {
+                            if (unit->getType() == BWAPI::UnitTypes::Protoss_Gateway && unit->isIdle())
+                            {
+                                const bool startedBuilding = unit->build(BWAPI::UnitTypes::Protoss_Zealot);
+                                if (startedBuilding)
+                                {
+                                    isBuild[i] = true;
+                                    count++;
+                                }
+
+                            }
+                        }
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "photon_cannon")
+            {
+                if (minerals > 150) {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Photon_Cannon);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Photon_Cannon");
+                        isBuild[i] = true;
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "cybernetics_core")
+            {
+                if (minerals > 150)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Cybernetics_Core);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Cybernetics_Core");
+                        isBuild[i] = true;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "dragoon")
+            {
+                if (minerals > 125 && gas > 50)
+                {
+                    int count = 0;
+                    for (auto& unit : myUnits)
+                    {
+                        if (count < 1)
+                        {
+                            if (unit->getType() == BWAPI::UnitTypes::Protoss_Gateway && unit->isIdle())
+                            {
+                                const bool startedBuilding = unit->build(BWAPI::UnitTypes::Protoss_Dragoon);
+                                if (startedBuilding)
+                                {
+                                    isBuild[i] = true;
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "citadel_of_adun")
+            {
+                if (minerals > 150 && gas > 100)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Citadel_of_Adun);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Citadel_of_Adun");
+                        isBuild[i] = true;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "templar_archives")
+            {
+                if (minerals > 150 && gas > 200)
+                {
+                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Templar_Archives);
+                    if (startedBuilding)
+                    {
+                        BWAPI::Broodwar->printf("Started Building Protoss_Templar_Archives");
+                        isBuild[i] = true;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (buildOrder[i].second == "dark_templar") {
+                if (minerals > 125 && gas > 100) {
+                    int count = 0;
+                    for (auto& unit : myUnits)
+                    {
+                        if (count < 1)
+                        {
+                            if (unit->getType() == BWAPI::UnitTypes::Protoss_Gateway && unit->isIdle())
+                            {
+                                const bool startedBuilding = unit->build(BWAPI::UnitTypes::Protoss_Dark_Templar);
+                                if (startedBuilding)
+                                {
+                                    isBuild[i] = true;
+                                    count++;
+                                }
+
+                            }
+                        }
+                    }
+
+                }
+                else
+                {
+                    break;
+                }
+            }
         }
     }
 
-    // drawing text to screen
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 30), "Zakwan Ashfaq Zian");
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 40), "201950250");
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Deep Vasantbhai Choudhary");
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 65), "201855905");
 }
 
 void StarterBot::sendWorkerToScout()
@@ -218,36 +428,22 @@ void StarterBot::sendWorkerToScout()
 void StarterBot::trainAdditionalWorkers()
 {
     const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
-    const int workersWanted = 50;
     const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
-    if (workersOwned < workersWanted)
-    {
-        // get the unit pointer to my depot
-        const BWAPI::Unit myDepot = Tools::GetDepot();
 
-        // if we have a valid depot unit and it's currently not training something, train a worker
-        // there is no reason for a bot to ever use the unit queueing system, it just wastes resources
-        if (myDepot && !myDepot->isTraining()) { myDepot->train(workerType); }
-    }
+    // get the unit pointer to my depot
+    const BWAPI::Unit myDepot = Tools::GetDepot();
+
+    // if we have a valid depot unit and it's currently not training something, train a worker
+    // there is no reason for a bot to ever use the unit queueing system, it just wastes resources
+    if (myDepot && !myDepot->isTraining()) { myDepot->train(workerType); }
+
 }
 
 // Build more supply if we are going to run out soon
 void StarterBot::buildAdditionalSupply()
 {
-    // Get the amount of supply supply we currently have unused
-    const int unusedSupply = Tools::GetTotalSupply(true) - BWAPI::Broodwar->self()->supplyUsed();
 
-    // If we have a sufficient amount of supply, we don't need to do anything
-    if (unusedSupply >= 2) { return; }
 
-    // Otherwise, we are going to build a supply provider
-    const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
-
-    const bool startedBuilding = Tools::BuildBuilding(supplyProviderType);
-    if (startedBuilding)
-    {
-        BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
-    }
 }
 
 // Draw some relevent information to the screen to help us debug the bot
