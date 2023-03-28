@@ -1,17 +1,17 @@
 #pragma once
 #include <BWAPI.h>
-
+#include "MapTools.h"
 
 class GlobalManager
 {
-	bool attackEnemyBase = false;
-	BWAPI::Position enemyPos;
+public:
+	bool									attackEnemyBase = false;
 	BWAPI::TilePosition						enemyLocation;
 	bool									enemyFound = false;
 	std::string								scoutStatus = "None";
+	MapTools*								map;
 
-public:
-	GlobalManager();
+	GlobalManager(MapTools* mapInstance);
 
 };
 

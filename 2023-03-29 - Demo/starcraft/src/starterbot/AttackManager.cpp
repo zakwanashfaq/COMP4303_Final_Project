@@ -1,7 +1,8 @@
 #include "AttackManager.h"
 
-AttackManager::AttackManager()
+AttackManager::AttackManager(GlobalManager* globalManagerInstance)
 {
+    globalManager = globalManagerInstance;
 }
 
 void AttackManager::update()
@@ -25,7 +26,7 @@ void AttackManager::attackEnemyAtBase()
 void AttackManager::attackAtEnemyBaseLocation()
 {
     // Get the location of the enemy base
-    BWAPI::TilePosition enemyBaseLocation = BWAPI::Broodwar->enemy()->getStartLocation();
+    // BWAPI::TilePosition enemyBaseLocation = BWAPI::Broodwar->enemy()->getStartLocation();
 
     // Select a group of your units
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
@@ -39,10 +40,11 @@ void AttackManager::attackAtEnemyBaseLocation()
         }
     }
 
-    // Order the attacking units to attack the enemy base
+    // moving attacking units to move to the enemy base
     for (auto& unit : attackingUnits)
     {
-        unit->attack(BWAPI::Position(enemyBaseLocation));
+        unit->attack(BWAPI::Position(globalManager->enemyLocation));
+        attackNearbyEnemyUnits(unit);
     }
 }
 
@@ -61,9 +63,29 @@ bool AttackManager::enemyDetectedAtBase()
             return true;
         }
     }
-    
 
     return false;
+}
+
+void AttackManager::attackNearbyEnemyUnits(BWAPI::Unit unit)
+{
+    ;
+    BWAPI::TilePosition unit_location(unit->getPosition());
+    auto enemyUnits = unit->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
+    for (auto& e_unit : enemyUnits)
+    {
+        if ((e_unit->getHitPoints() > 0) && !e_unit->getType().isBuilding())
+        {
+            unit->attack(e_unit);
+            return;
+        }
+        else if ((e_unit->getHitPoints() > 0))
+        {
+            unit->attack(e_unit);
+            return;
+        }
+    }
+    
 }
 
 void AttackManager::setAttackEnemyStatus(bool attackBool)

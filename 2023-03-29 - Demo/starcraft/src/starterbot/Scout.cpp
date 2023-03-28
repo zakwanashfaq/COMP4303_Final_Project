@@ -19,6 +19,9 @@ void ScoutManager::checkIfEnemyFound()
 				BWAPI::Position ePos = unit->getPosition();
 				enemyLocation = BWAPI::TilePosition(ePos);
 				enemyFound = true;
+				globalManager->enemyFound = true;
+				globalManager->scoutStatus = "enemy_found";
+				globalManager->enemyLocation = BWAPI::TilePosition(ePos);
 				scoutStatus = "enemy_found";
 				// (not needed as of now) todo: narrow down search space and do more enemy base exploration
 			}
@@ -26,9 +29,10 @@ void ScoutManager::checkIfEnemyFound()
 	}
 }
 
-ScoutManager::ScoutManager(MapTools* mapInstance)
+ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
 {
 	map = mapInstance;
+	globalManager = globalManagerInstance;
 	enemy = BWAPI::Broodwar->enemy();
 	scoutMap = new Grid(BWAPI::Broodwar->mapWidth(), BWAPI::Broodwar->mapHeight(), 0);
 	std::cout << "ScoutManager Initialized." << std::endl;

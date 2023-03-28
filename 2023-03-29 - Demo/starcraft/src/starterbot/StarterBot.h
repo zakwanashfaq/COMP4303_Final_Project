@@ -3,11 +3,13 @@
 #include "MapTools.h"
 #include "Scout.h"
 #include "AttackManager.h"
+#include "GlobalManager.h"
 #include <BWAPI.h>
 
 class StarterBot
 {
     MapTools m_mapTools;
+	GlobalManager* globalManger;
 	ScoutManager* scouthandler;
 	AttackManager* attackhandler;
 	void createCannon();

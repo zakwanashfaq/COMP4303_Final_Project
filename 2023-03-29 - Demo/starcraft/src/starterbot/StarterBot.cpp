@@ -18,8 +18,9 @@ void StarterBot::onStart()
 
     // Call MapTools OnStart
     m_mapTools.onStart();
-    scouthandler = new ScoutManager(&m_mapTools);
-    attackhandler = new AttackManager();
+    globalManger = new GlobalManager(&m_mapTools);
+    scouthandler = new ScoutManager(&m_mapTools, globalManger);
+    attackhandler = new AttackManager(globalManger);
 }
 
 // Called on each frame of the game

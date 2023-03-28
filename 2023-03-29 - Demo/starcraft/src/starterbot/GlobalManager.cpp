@@ -1,5 +1,6 @@
 #include "GlobalManager.h"
 
-GlobalManager::GlobalManager()
+GlobalManager::GlobalManager(MapTools* mapInstance)
 {
+	map = mapInstance;
 }

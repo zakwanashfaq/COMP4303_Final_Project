@@ -3,10 +3,12 @@
 #include "Grid.hpp"
 #include <unordered_map>
 #include "MapTools.h"
+#include "GlobalManager.h"
 
 
 class ScoutManager
 {
+	GlobalManager*							globalManager;
 	MapTools *								map;
 	BWAPI::Unit								scout = nullptr;
 	std::string								scoutStatus = "None";
@@ -19,10 +21,9 @@ class ScoutManager
 	BWAPI::TilePosition						enemyLocation;
 	bool									enemyFound = false;
 
-	void moveScouts();
 	void checkIfEnemyFound();
 public:
-	ScoutManager(MapTools * mapInstance);
+	ScoutManager(MapTools * mapInstance, GlobalManager* globalManagerInstance);
 	void update();
 	BWAPI::Unit getScout();
 	void setScout(BWAPI::Unit unit);
