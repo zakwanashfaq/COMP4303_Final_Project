@@ -42,7 +42,7 @@ void StarterBot::onFrame()
     scouthandler->update();
     attackhandler->update();
     // send attack after specific number of probes being built
-    int num_of_probes_to_attack = 30;
+    int num_of_probes_to_attack = 25;
     if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (scouthandler->getScoutStatus() == "enemy_found"))
     {
         BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");

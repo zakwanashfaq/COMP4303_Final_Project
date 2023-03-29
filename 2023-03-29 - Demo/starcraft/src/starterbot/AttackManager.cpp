@@ -20,15 +20,27 @@ void AttackManager::update()
 
 void AttackManager::attackEnemyAtBase()
 {
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Attacking Enemy at base");
+    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Defending base");
+    auto myUnits = BWAPI::Broodwar->self()->getUnits();
+    std::vector<BWAPI::Unit> attackingUnits;
+    for (auto& unit : myUnits)
+    {
+        // If the unit is a combat unit and is not already attacking, add it to the attacking group
+        if (unit->getType().canAttack() && !unit->isAttacking())
+        {
+            attackingUnits.push_back(unit);
+        }
+    }
+
+    // moving attacking units to move to the enemy base
+    for (auto& unit : attackingUnits)
+    {
+        attackNearbyEnemyUnits(unit);
+    }
 }
 
 void AttackManager::attackAtEnemyBaseLocation()
 {
-    // Get the location of the enemy base
-    // BWAPI::TilePosition enemyBaseLocation = BWAPI::Broodwar->enemy()->getStartLocation();
-
-    // Select a group of your units
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
     std::vector<BWAPI::Unit> attackingUnits;
     for (auto& unit : myUnits)
