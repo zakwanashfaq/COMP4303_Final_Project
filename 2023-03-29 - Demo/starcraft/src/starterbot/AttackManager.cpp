@@ -70,7 +70,6 @@ bool AttackManager::enemyDetectedAtBase()
         auto enemyUnits = pMain->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
         for (auto& unit : enemyUnits)
         {
-            std::cout << "enemy detected at base" << std::endl;
             BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 75), "Enemy at base");
             return true;
         }
