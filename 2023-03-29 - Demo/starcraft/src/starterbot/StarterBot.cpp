@@ -28,6 +28,7 @@ void StarterBot::onStart()
 
     // Call MapTools OnStart
     m_mapTools.onStart();
+    // initializes sub-modules
     globalManger = new GlobalManager(&m_mapTools);
     scouthandler = new ScoutManager(&m_mapTools, globalManger);
     attackhandler = new AttackManager(globalManger);
@@ -43,7 +44,7 @@ void StarterBot::onFrame()
     attackhandler->update();
     // send attack after specific number of probes being built
     int num_of_probes_to_attack = 25;
-    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (scouthandler->getScoutStatus() == "enemy_found"))
+    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (globalManger->scoutStatus == "enemy_found"))
     {
         BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
         attackhandler->setAttackEnemyStatus(true);
@@ -126,7 +127,6 @@ void StarterBot::scoutForEnemyBase()
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
     for (auto& unit : myUnits)
     {
-        // Check the unit type then we want to send it somewhere
         if (unit->getType().isWorker())
         {
             scouthandler->setScout(unit);
@@ -449,7 +449,7 @@ void StarterBot::buildAdditionalSupply()
 // Draw some relevent information to the screen to help us debug the bot
 void StarterBot::drawDebugInformation()
 {
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 10), "Hello, World!\n");
+    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 10), "Debug Info Enabled.\n");
     Tools::DrawUnitCommands();
     Tools::DrawUnitBoundingBoxes();
 }
