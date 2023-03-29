@@ -20,20 +20,32 @@ void AttackManager::update()
 
 void AttackManager::attackEnemyAtBase()
 {
-    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Attacking Enemy at base");
-}
-
-void AttackManager::attackAtEnemyBaseLocation()
-{
-    // Get the location of the enemy base
-    // BWAPI::TilePosition enemyBaseLocation = BWAPI::Broodwar->enemy()->getStartLocation();
-
-    // Select a group of your units
+    BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Defending base");
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
     std::vector<BWAPI::Unit> attackingUnits;
     for (auto& unit : myUnits)
     {
-        // If the unit is a combat unit and is not already attacking, add it to the attacking group
+        // If the unit is a combat unit and is not already attacking, add to attacking queue
+        if (unit->getType().canAttack() && !unit->isAttacking())
+        {
+            attackingUnits.push_back(unit);
+        }
+    }
+
+    // moving attacking units to move to the enemy base
+    for (auto& unit : attackingUnits)
+    {
+        attackNearbyEnemyUnits(unit);
+    }
+}
+
+void AttackManager::attackAtEnemyBaseLocation()
+{
+    auto myUnits = BWAPI::Broodwar->self()->getUnits();
+    std::vector<BWAPI::Unit> attackingUnits;
+    for (auto& unit : myUnits)
+    {
+        // If the unit is a combat unit and is not already attacking, add to attacking queue
         if (unit->getType().canAttack() && !unit->isAttacking())
         {
             attackingUnits.push_back(unit);
@@ -52,13 +64,12 @@ bool AttackManager::enemyDetectedAtBase()
 {
     
     BWAPI::TilePosition my_location = BWAPI::Broodwar->self()->getStartLocation();
-    BWAPI::Unit pMain = BWAPI::Broodwar->getClosestUnit(BWAPI::Position(my_location), BWAPI::Filter::IsResourceDepot);
-    if (pMain)
+    BWAPI::Unit playerMainBuilding = BWAPI::Broodwar->getClosestUnit(BWAPI::Position(my_location), BWAPI::Filter::IsResourceDepot);
+    if (playerMainBuilding)
     {
-        auto enemyUnits = pMain->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
+        auto enemyUnits = playerMainBuilding->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
         for (auto& unit : enemyUnits)
         {
-            std::cout << "enemy detected at base" << std::endl;
             BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 75), "Enemy at base");
             return true;
         }

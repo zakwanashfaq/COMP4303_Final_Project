@@ -24,6 +24,8 @@ public:
 	void sendWorkerToScout();
     void trainAdditionalWorkers();
     void buildAdditionalSupply();
+	void buildOrderProduction();
+	void sendWorkerToRefinery();
     void drawDebugInformation();
 	
 
