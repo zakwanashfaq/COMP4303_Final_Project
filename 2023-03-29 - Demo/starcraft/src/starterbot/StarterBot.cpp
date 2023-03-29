@@ -6,8 +6,8 @@
 //we will be fetching build order from bin folder in next iteration.
 std::deque<std::pair<int, std::string>> buildOrder = { {8,"pylon"},{10,"gateway"},{11,"assimilator"},{12,"gateway"},{13,"zealot"},
     {14,"pylon"},{17,"zealot"},{17,"zealot"},{17,"pylon"},
-    {18,"forge"},{19,"pylon"}, {20,"cybernetics_core"},{22,"pylon"},{23,"dragoon"},
-    {23,"dragoon"},{24,"photon_cannon"} };
+    {18,"forge"},{19,"pylon"}, {20,"cybernetics_core"},{22,"photon_cannon"},{23,"dragoon"},
+    {23,"dragoon"},{24,"pylon"} };
 
 // we set the state of all build order to false initially
 bool isBuild[16] = { false };
