@@ -16,7 +16,7 @@
 
 ## Project Videos:
 
-* Project Demo: YouTube URL
+* Project Demo: [Demo Link](https://www.youtube.com/watch?v=mezimxduh7g)
 * Project Trailer: YouTube URL
 * Project  Presentation: YouTube URL
 
