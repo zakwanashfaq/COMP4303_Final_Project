@@ -31,8 +31,6 @@ starcraftfull
 *.pdb
 *.ilk
 *.ERR
-bin/StarterBot_d.exe
-bin/StarterBot_d.exe
 bin/ReplayData.txt
 bin/ReplayParser.exe
 bin/RunReplayParserAndStarcraft.bat
