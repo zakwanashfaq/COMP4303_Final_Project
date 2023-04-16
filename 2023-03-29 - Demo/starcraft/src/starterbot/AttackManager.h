@@ -15,6 +15,6 @@ public:
 	void attackAtEnemyBaseLocation();
 	bool enemyDetectedAtBase();
 	void attackNearbyEnemyUnits(BWAPI::Unit unit);
-	void setAttackEnemyStatus(bool attackBool);
+	void setAttackEnemyStatus(bool attackBool); 
 };
 
