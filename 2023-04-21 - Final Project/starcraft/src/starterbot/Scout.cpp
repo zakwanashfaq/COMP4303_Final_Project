@@ -12,21 +12,84 @@ void ScoutManager::checkIfEnemyFound()
 	}
 	else
 	{
-		// detects enemy buildings 
-		BWAPI::Unitset enemyUnits = BWAPI::Broodwar->enemy()->getUnits();
-		for (auto& unit : enemyUnits) {
-			if (unit->getType().isBuilding()) {
-				BWAPI::Position ePos = unit->getPosition();
-				enemyLocation = BWAPI::TilePosition(ePos);
-				enemyFound = true;
-				globalManager->enemyFound = true;
-				globalManager->scoutStatus = "enemy_found";
-				globalManager->enemyLocation = BWAPI::TilePosition(ePos);
-				scoutStatus = "enemy_found";
-				// (not needed as of now) todo: narrow down search space and do more enemy base exploration
+		detectEnemyBuildings();
+		detectEnemyUnits();
+	}
+}
+
+void ScoutManager::updateLastKnownEnemyUnitLocations()
+{
+	for (auto& e : lastKnownEnemyUnitLocations)
+	{
+		BWAPI::Unit enemy = e.first;
+		// if enemy is visible again update its location
+		if (enemy->isVisible())
+		{
+			lastKnownEnemyUnitLocations[enemy] = enemy->getPosition();
+			lastKnownEnemyUnitNames[enemy] = enemy->getType().getName();
+		}
+	}
+}
+
+void ScoutManager::drawCirclesInMiniMap()
+{
+	for (const auto & e : lastKnownEnemyUnitLocations)
+	{
+		BWAPI::Unit enemy = e.first;
+		BWAPI::Position position = e.second;
+		// drawing a red circle with radious 10
+		BWAPI::Broodwar->drawCircleMap(position, 10, BWAPI::Colors::Red);
+		// printing the unit type near the circle
+		std::string unitType = lastKnownEnemyUnitNames[enemy];
+		int xOffset = (-unitType.length() * 2) - 2 ;
+		int yOffset = 7; 
+		BWAPI::Position textPosition = position + BWAPI::Position(xOffset, yOffset);
+		BWAPI::Broodwar->drawTextMap(textPosition, "%s", unitType.c_str());
+	}
+}
+
+void ScoutManager::detectEnemyBuildings()
+{
+	// detects enemy buildings and records last position of all units
+	BWAPI::Unitset enemyUnits = BWAPI::Broodwar->enemy()->getUnits();
+	for (auto& unit : enemyUnits) {
+		lastKnownEnemyUnitLocations[unit] = unit->getPosition();
+		lastKnownEnemyUnitNames[unit] = unit->getType().getName();
+		if (unit->getType().isBuilding()) {
+			BWAPI::Position ePos = unit->getPosition();
+			enemyLocation = BWAPI::TilePosition(ePos);
+			enemyFound = true;
+			globalManager->enemyFound = true;
+			globalManager->scoutStatus = "enemy_found";
+			globalManager->enemyLocation = BWAPI::TilePosition(ePos);
+			scoutStatus = "enemy_found";
+			// (not needed as of now) todo: narrow down search space and do more enemy base exploration
+		}
+	}
+}
+
+void ScoutManager::detectEnemyUnits()
+{
+	if (scout == nullptr)
+	{
+		return;
+	}
+	BWAPI::Unitset nearbyUnits = BWAPI::Broodwar->getUnitsInRadius(scout->getPosition(), 500);
+
+	for (auto& unit : nearbyUnits)
+	{
+		if (unit->getPlayer()->isEnemy(BWAPI::Broodwar->self()))
+		{
+			lastKnownEnemyUnitLocations[unit] = unit->getPosition();
+			lastKnownEnemyUnitNames[unit] = unit->getType().getName();
+			if (unit->getType().canAttack() || unit->getType().isSpellcaster())
+			{
+				// retreat scout
 			}
 		}
 	}
+
+	// return false;
 }
 
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
@@ -41,6 +104,8 @@ ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerIn
 void ScoutManager::update()
 {
 	checkIfEnemyFound();
+	updateLastKnownEnemyUnitLocations();
+	drawCirclesInMiniMap();
 	if (scout)
 	{
 		if ((scoutStatus == "None") || (scoutStatus == "exploring"))
@@ -78,11 +143,6 @@ void ScoutManager::update()
 				}
 			}
 			
-
-			/*if (noScoutLocationFound)
-			{
-				scoutLevel++;
-			}*/
 		}
 		if (!scout->exists())
 		{
@@ -115,4 +175,9 @@ BWAPI::TilePosition ScoutManager::getEnemyLocation()
 std::string ScoutManager::getScoutStatus()
 {
 	return scoutStatus;
+}
+
+std::map<BWAPI::Unit, BWAPI::Position> ScoutManager::getLastKnownEnemyUnitLocations()
+{
+	return lastKnownEnemyUnitLocations;
 }
