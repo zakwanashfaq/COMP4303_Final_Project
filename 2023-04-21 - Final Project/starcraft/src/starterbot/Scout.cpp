@@ -74,7 +74,7 @@ void ScoutManager::detectEnemyUnits()
 	{
 		return;
 	}
-	BWAPI::Unitset nearbyUnits = BWAPI::Broodwar->getUnitsInRadius(scout->getPosition(), 500);
+	BWAPI::Unitset nearbyUnits = BWAPI::Broodwar->getUnitsInRadius(scout->getPosition(), 9700);
 
 	for (auto& unit : nearbyUnits)
 	{
@@ -84,12 +84,37 @@ void ScoutManager::detectEnemyUnits()
 			lastKnownEnemyUnitNames[unit] = unit->getType().getName();
 			if (unit->getType().canAttack() || unit->getType().isSpellcaster())
 			{
-				// retreat scout
+				scoutStatus = "retreat";
+			}
+			else 
+			{
+				scout->attack(unit);
 			}
 		}
 	}
 
 	// return false;
+}
+
+void ScoutManager::retreatScout()
+{
+	BWAPI::TilePosition startingBaseTilePosition = BWAPI::Broodwar->self()->getStartLocation();
+	BWAPI::Position startingBasePosition = BWAPI::Position(startingBaseTilePosition);
+	scout->move(startingBasePosition);
+	checkIfScoutIsAtBase();
+}
+
+void ScoutManager::checkIfScoutIsAtBase()
+{
+	BWAPI::TilePosition startingBaseTilePosition = BWAPI::Broodwar->self()->getStartLocation();
+	BWAPI::Position startingBasePosition = BWAPI::Position(startingBaseTilePosition);
+	double distance = scout->getPosition().getApproxDistance(startingBasePosition);
+
+	// checking if scout is within 200 units of base
+	if (distance < 200)
+	{
+		scoutStatus = "None";
+	}
 }
 
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
@@ -143,6 +168,10 @@ void ScoutManager::update()
 				}
 			}
 			
+		}
+		else if (scoutStatus == "retreat")
+		{
+			retreatScout();
 		}
 		if (!scout->exists())
 		{

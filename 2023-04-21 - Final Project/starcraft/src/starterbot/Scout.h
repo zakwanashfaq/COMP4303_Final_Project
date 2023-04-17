@@ -27,6 +27,9 @@ class ScoutManager
 	void drawCirclesInMiniMap();
 	void detectEnemyBuildings();
 	void detectEnemyUnits();
+	void retreatScout();
+	void checkIfScoutIsAtBase();
+
 public:
 	ScoutManager(MapTools * mapInstance, GlobalManager* globalManagerInstance);
 	void update();
