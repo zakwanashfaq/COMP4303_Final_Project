@@ -1,16 +1,11 @@
 #include "StarterBot.h"
 #include "Tools.h"
 #include "MapTools.h"
+#include <fstream>
 
-// we use deque to store the build order for now,
-//we will be fetching build order from bin folder in next iteration.
-std::deque<std::pair<int, std::string>> buildOrder = { {8,"pylon"},{10,"gateway"},{11,"assimilator"},{12,"gateway"},{13,"zealot"},
-    {14,"pylon"},{17,"zealot"},{17,"zealot"},{17,"pylon"},
-    {18,"forge"},{19,"pylon"}, {20,"cybernetics_core"},{22,"photon_cannon"},{23,"dragoon"},
-    {23,"dragoon"},{24,"pylon"} };
-
+std::deque<std::pair<int, std::string>> buildOrder;
 // we set the state of all build order to false initially
-bool isBuild[16] = { false };
+bool isBuild[20] = { false };
 
 StarterBot::StarterBot()
 {
@@ -25,6 +20,9 @@ void StarterBot::onStart()
     BWAPI::Broodwar->setFrameSkip(0);
     // Enable the flag that tells BWAPI top let users enter input while bot plays
     BWAPI::Broodwar->enableFlag(BWAPI::Flag::UserInput);
+
+    // call for reading build order from bin folder
+    getBuildOrder();
 
     // Call MapTools OnStart
     m_mapTools.onStart();
@@ -49,12 +47,17 @@ void StarterBot::onFrame()
         BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
         attackhandler->setAttackEnemyStatus(true);
     }
-  
+   
     // Train more workers so we can gather more income
     trainAdditionalWorkers();
 
+    // check if workers are send to collect gas
+    sendWorkerToRefinery();
+
     // perform build order production
-    buildOrderProduction();
+    if (buildOrder.size() > 0) {
+        buildOrderProduction();
+    }
 
     // Send our idle workers to mine minerals so they don't just stand there
     sendIdleWorkersToMinerals();
@@ -72,6 +75,31 @@ void StarterBot::onFrame()
 
     // Draw some relevent information to the screen to help us debug the bot
     drawDebugInformation();
+}
+
+void StarterBot::getBuildOrder()
+{
+    std::string line;
+    std::deque<std::pair<int, std::string>> buildLine;
+    std::ifstream input("./../bin/BuildOrder.txt");
+    for (line; std::getline(input, line);) {
+        int i = 0;
+        char* buf = line.data();
+        char* p = strtok(buf, " ");
+        char* array[2];
+        while (p != NULL)
+        {
+            array[i++] = p;
+            p = strtok(NULL, " ");
+        }
+        buildLine.push_back({ atoi(array[0]), array[1] });
+    }
+    buildOrder = buildLine;
+
+    // We print our build order 
+    for (auto& order : buildLine) {
+        std::cout << order.first << " " << order.second << "\n";
+    }
 }
 
 int StarterBot::getCountByUnitType(const BWAPI::UnitType& unitType)
@@ -138,28 +166,34 @@ void StarterBot::scoutForEnemyBase()
 // Send our idle workers to mine minerals so they don't just stand there
 void StarterBot::sendIdleWorkersToMinerals()
 {
-    // Let's send all of our starting workers to the closest mineral to them
     // First we need to loop over all of the units that we (BWAPI::Broodwar->self()) own
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
-
-    const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
-    //const int workersWanted = 38;
-    const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
-    int count = 0;
+    BWAPI::Unitset myResources;
+    BWAPI::Unitset myWorkers;
     for (auto& unit : myUnits)
     {
-        // Check the unit type, if it is an idle worker, then we want to send it somewhere
-        if (unit->getType().isWorker() && unit->isIdle())
+        if (unit->getType() == BWAPI::UnitTypes::Protoss_Nexus)
         {
-            if (workersOwned == 17) {
-                sendWorkerToRefinery();
-            }
-            else {
-                // Get the closest mineral to this worker unit
-                BWAPI::Unit closestMineral = Tools::GetClosestUnitTo(unit, BWAPI::Broodwar->getMinerals());
+            // we get all the mineral fields near our base
+            myResources = unit->getUnitsInRadius(512, BWAPI::Filter::IsMineralField);
+            // we get all the workers that are at base and are idle
+            myWorkers = unit->getUnitsInRadius(512, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
+        }
 
-                // If a valid mineral was found, right click it with the unit in order to start harvesting
-                if (closestMineral) { unit->rightClick(closestMineral); }
+    }
+
+    // Now, we loop over each mineral patch to check if minerals are being gathered
+    for (auto& resource : myResources) {
+
+        // If not being gathered, we sent max, 2.5 workers to gaather minerals from each resource
+        if (!resource->isBeingGathered())
+        {
+            int count = 0;
+            for (auto& worker : myWorkers) {
+                if (count < 2.5) {
+                    worker->gather(resource);
+                    count++;
+                }
             }
         }
     }
@@ -169,34 +203,53 @@ void StarterBot::sendWorkerToRefinery()
 {
     // First we need to loop over all of the units that we (BWAPI::Broodwar->self()) own
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
-    int count = 0;
     for (auto& unit : myUnits)
+    {
+        // check if assimilator is build 
+        if (unit->getType() == BWAPI::UnitTypes::Protoss_Assimilator && unit->isCompleted())
+        {
+            // then, check if gas is being collected by workers, if not, make a call to collect gas
+            if (!(unit->isBeingGathered())) {
+                sendThreeWorkersToCollectGas(unit);
+            }
+        }
+    }
+}
+
+void StarterBot::sendThreeWorkersToCollectGas(BWAPI::Unit refinery)
+{
+    // First we need to loop over all of the units that we (BWAPI::Broodwar->self()) own
+    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+    BWAPI::Unitset myWorkers;
+    int count = 0;
+
+    for (auto& unit : myUnits)
+    {
+        if (unit->getType() == BWAPI::UnitTypes::Protoss_Probe)
+        {
+            // we get all the workers that are at base and are idle
+            myWorkers = unit->getUnitsInRadius(512, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
+        }
+
+    }
+    for (auto& unit : myWorkers)
     {
         //send 3 workers to gas refinery
         if (count < 3) {
-            // Check the unit type, if it is an worker, then we want to send it somewhere
-            if (unit->getType().isWorker())
-            {
-                // Get the closest refinery to this worker unit
-                BWAPI::Unit closestRefinery = Tools::GetClosestUnitTo(unit, BWAPI::Broodwar->getStaticGeysers());
-                // If a valid static geyser was found, right click it with the unit in order to start collecting
-                if (closestRefinery) { unit->rightClick(closestRefinery); count++; }
-            }
+            unit->rightClick(refinery); count++;
         }
-
     }
 }
 
 
 void StarterBot::buildOrderProduction()
 {
+    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
     const BWAPI::UnitType workerType = BWAPI::Broodwar->self()->getRace().getWorker();
     const int workersOwned = Tools::CountUnitsOfType(workerType, BWAPI::Broodwar->self()->getUnits());
 
     int minerals = BWAPI::Broodwar->self()->minerals();
     int gas = BWAPI::Broodwar->self()->gas();
-
-    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
 
     for (size_t i = 0; i < buildOrder.size(); i++)
     {
@@ -442,8 +495,26 @@ void StarterBot::trainAdditionalWorkers()
 // Build more supply if we are going to run out soon
 void StarterBot::buildAdditionalSupply()
 {
+    int NumberOfBuildCompleted = 0;
+    for (int i = 0; i < buildOrder.size(); i++) {
+        if (isBuild[i] == true) {
+            NumberOfBuildCompleted++;
+        }
+    }
 
+    // If build order is completed, we can use rule based system
+    if (NumberOfBuildCompleted == 20) {
+        const int unusedSupply = Tools::GetTotalSupply(true) - BWAPI::Broodwar->self()->supplyUsed();
+        if (unusedSupply >= 2) { return; }
 
+        const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
+
+        const bool startedBuilding = Tools::BuildBuilding(supplyProviderType);
+        if (startedBuilding)
+        {
+            BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
+        }
+    }
 }
 
 // Draw some relevent information to the screen to help us debug the bot

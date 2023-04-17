@@ -12,7 +12,6 @@ class StarterBot
 	GlobalManager* globalManger;
 	ScoutManager* scouthandler;
 	AttackManager* attackhandler;
-	void createCannon();
 
 public:
 
@@ -27,6 +26,8 @@ public:
 	void buildOrderProduction();
 	void sendWorkerToRefinery();
     void drawDebugInformation();
+	void getBuildOrder();
+	void sendThreeWorkersToCollectGas(BWAPI::Unit refinery);
 	
 
     // functions that are triggered by various BWAPI events from main.cpp
