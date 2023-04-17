@@ -117,6 +117,119 @@ void ScoutManager::checkIfScoutIsAtBase()
 	}
 }
 
+void ScoutManager::scoutRoam()
+{
+	int playerQuadrant = getPlayerMapPositionByQuadrent();
+	if (enemyFound)
+	{
+		scout->move(BWAPI::Position(enemyLocation));
+	}
+	else
+	{
+		int startX, endX, stepX;
+		int startY, endY, stepY;
+		int stepSize = 5;
+		switch (playerQuadrant)
+		{
+		case 1:
+			startX = map->width() - 1;
+			endX = 0;
+			stepX = -1 * stepSize;
+			startY = map->height() - 1;
+			endY = 0;
+			stepY = -1 * stepSize;
+			break;
+		case 2:
+			startX = 0;
+			endX = map->width() - 1;
+			stepX = stepSize;
+			startY = map->height() - 1;
+			endY = 0;
+			stepY = -1 * stepSize;
+			break;
+		case 3:
+			startX = map->width() - 1;
+			endX = 0;
+			stepX = -1 * stepSize;
+			startY = 0;
+			endY = map->height() - 1;
+			stepY = stepSize;
+			break;
+		case 4:
+		default:
+			startX = 0;
+			endX = map->width() - 1;
+			stepX = stepSize;
+			startY = 0;
+			endY = map->height() - 1;
+			stepY = stepSize;
+			break;
+		}
+
+		traverseMap(startX, endX, stepX, startY, endY, stepY);
+
+	}
+}
+
+void ScoutManager::traverseMap(int startX, int endX, int stepX, int startY, int endY, int stepY)
+{
+	bool foundNextTarget = false;
+	for (int x = startX; (stepX > 0) ? x <= endX : x >= endX; x += stepX)
+	{
+		if (foundNextTarget)
+		{
+			break;
+		}
+		for (int y = startY; (stepY > 0) ? y <= endY : y >= endY; y += stepY)
+		{
+			std::string locationEncoding = std::to_string(x) + std::to_string(y);
+			bool isWalkable = map->isWalkable(x, y);
+			bool explored = map->isExplored(x, y);
+			int mapVal = scoutMap->get(x, y);
+			if (isWalkable && (!explored && (mapVal < 700)))
+			{
+				exploringHash[locationEncoding] = true;
+				scout->move(BWAPI::Position(BWAPI::TilePosition(x, y)));
+				scoutStatus = "exploring";
+				scoutMap->set(x, y, mapVal + 1);
+				foundNextTarget = true;
+				break;
+			}
+		}
+	}
+}
+
+int ScoutManager::getPlayerMapPositionByQuadrent()
+{
+	int mapWidth = BWAPI::Broodwar->mapWidth() * 32;
+	int mapHeight = BWAPI::Broodwar->mapHeight() * 32;
+
+	// Calculate the center of the map
+	int centerX = mapWidth / 2;
+	int centerY = mapHeight / 2;
+
+	BWAPI::Position startingBasePosition = BWAPI::Position(globalManager->playerLocation);
+
+	// Determine the quadrant where the player's starting base is located
+	if (startingBasePosition.x < centerX && startingBasePosition.y < centerY)
+	{
+		return 1;
+	}
+	else if (startingBasePosition.x >= centerX && startingBasePosition.y < centerY)
+	{
+		return 2;
+	}
+	else if (startingBasePosition.x < centerX && startingBasePosition.y >= centerY)
+	{
+		return 3;
+	}
+	else 
+	{
+		// startingBasePosition.x >= centerX && startingBasePosition.y >= centerY
+		return 4;
+	}
+}
+
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
 {
 	map = mapInstance;
@@ -135,39 +248,7 @@ void ScoutManager::update()
 	{
 		if ((scoutStatus == "None") || (scoutStatus == "exploring"))
 		{
-			bool foundNextTarget = false;
-			bool noScoutLocationFound = false;
-			if (enemyFound)
-			{
-				scout->move(BWAPI::Position(enemyLocation));
-			}
-			else
-			{
-				for (int x = 0; x < map->width(); x += 15)
-				{
-					if (foundNextTarget)
-					{
-						break;
-					}
-					for (int y = 0; y < map->height(); y += 15)
-					{
-						std::string locationEncoding = std::to_string(x) + std::to_string(y);
-						bool isWalkable = map->isWalkable(x, y);
-						bool explored = map->isExplored(x, y);
-						int mapVal = scoutMap->get(x, y);
-						if (isWalkable && (!explored && (mapVal < 500)))
-						{
-							exploringHash[locationEncoding] = true;
-							scout->move(BWAPI::Position(BWAPI::TilePosition(x, y)));
-							scoutStatus = "exploring";
-							scoutMap->set(x, y, mapVal + 1);
-							foundNextTarget = true;
-							break;
-						}
-					}
-				}
-			}
-			
+			scoutRoam();
 		}
 		else if (scoutStatus == "retreat")
 		{

@@ -7,6 +7,7 @@ class GlobalManager
 public:
 	bool									attackEnemyBase = false;
 	BWAPI::TilePosition						enemyLocation;
+	BWAPI::TilePosition						playerLocation;
 	bool									enemyFound = false;
 	std::string								scoutStatus = "None";
 	MapTools*								map;
