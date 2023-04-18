@@ -8,29 +8,31 @@
 
 class StarterBot
 {
-    MapTools m_mapTools;
+	MapTools m_mapTools;
 	GlobalManager* globalManger;
 	ScoutManager* scouthandler;
 	AttackManager* attackhandler;
 
 public:
 
-    StarterBot();
+	StarterBot();
 
-    // helper functions to get you started with bot programming and learn the API
-    void sendIdleWorkersToMinerals();
+	// helper functions to get you started with bot programming and learn the API
+	void sendIdleWorkersToMinerals();
 	void sendProbesToFormALine();
 	void sendWorkerToScout();
-    void trainAdditionalWorkers();
-    void buildAdditionalSupply();
+	void trainAdditionalWorkers();
+	void buildAdditionalSupply();
 	void buildOrderProduction();
 	void sendWorkerToRefinery();
-    void drawDebugInformation();
+	void drawDebugInformation();
 	void getBuildOrder();
 	void sendThreeWorkersToCollectGas(BWAPI::Unit refinery);
-	
+	void ruleBasedSystem();
+	void buildCannon();
+	void continueGatewayProduction();
 
-    // functions that are triggered by various BWAPI events from main.cpp
+	// functions that are triggered by various BWAPI events from main.cpp
 	void onStart();
 	void onFrame();
 	void onEnd(bool isWinner);
