@@ -20,8 +20,8 @@ class ScoutManager
 	BWAPI::Player							enemy;
 	BWAPI::TilePosition						enemyLocation;
 	bool									enemyFound = false;
-	std::map<BWAPI::Unit, BWAPI::Position>  lastKnownEnemyUnitLocations;
-	std::map<BWAPI::Unit, std::string>		lastKnownEnemyUnitNames;
+	std::map<int, BWAPI::Position>  lastKnownEnemyUnitLocations;
+	std::map<int, std::string>		lastKnownEnemyUnitNames;
 	// specific task functions
 	void checkIfEnemyFound();
 	void updateLastKnownEnemyUnitLocations();
@@ -41,5 +41,5 @@ public:
 	void setScout(BWAPI::Unit unit);
 	BWAPI::TilePosition getEnemyLocation();
 	std::string getScoutStatus();
-	std::map<BWAPI::Unit, BWAPI::Position>  getLastKnownEnemyUnitLocations();
+	std::map<int, BWAPI::Position>  getLastKnownEnemyUnitLocations();
 };
