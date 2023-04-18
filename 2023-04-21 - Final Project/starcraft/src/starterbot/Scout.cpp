@@ -78,7 +78,6 @@ void ScoutManager::detectEnemyUnits()
 		return;
 	}
 	BWAPI::Unitset nearbyUnits = BWAPI::Broodwar->getAllUnits();
-
 	for (auto& unit : nearbyUnits)
 	{
 		if (unit->getPlayer()->isEnemy(BWAPI::Broodwar->self()))
@@ -96,18 +95,23 @@ void ScoutManager::detectEnemyUnits()
 				scoutStatus = "enemy_found";
 				// (not needed as of now) todo: narrow down search space and do more enemy base exploration
 			}
-
+		}
+	}
+	BWAPI::Unitset scoutNearbyUnits = BWAPI::Broodwar->getUnitsInRadius(scout->getPosition(), 9700);
+	for (auto& unit : scoutNearbyUnits)
+	{
+		if (unit->getPlayer()->isEnemy(BWAPI::Broodwar->self()))
+		{
 			if (unit->getType().canAttack() || unit->getType().isSpellcaster())
 			{
 				scoutStatus = "retreat";
 			}
-			else 
+			else
 			{
 				scout->attack(unit);
 			}
 		}
 	}
-
 	// return false;
 }
 
