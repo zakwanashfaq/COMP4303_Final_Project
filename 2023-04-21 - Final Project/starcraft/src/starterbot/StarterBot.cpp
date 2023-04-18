@@ -5,6 +5,8 @@
 
 std::deque<std::pair<int, std::string>> buildOrder;
 // we set the state of all build order to false initially
+int ZealotOrDragoon = 0;
+bool isBasedAttacked = false;
 bool isBuild[20] = { false };
 
 StarterBot::StarterBot()
@@ -40,14 +42,15 @@ void StarterBot::onFrame()
     
     scouthandler->update();
     attackhandler->update();
-    // send attack after specific number of probes being built
-     int num_of_probes_to_attack = 50;
-    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (globalManger->scoutStatus == "enemy_found"))
-    {
+
+    // send attack immediately after enemy is killed at our base
+    if (attackhandler->enemyDetectedAtBase()) {
+        isBasedAttacked = true;
+    }
+    if (isBasedAttacked && (globalManger->scoutStatus == "enemy_found") && !(attackhandler->enemyDetectedAtBase())) {
         BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
         attackhandler->setAttackEnemyStatus(true);
     }
-   
     // Train more workers so we can gather more income
     trainAdditionalWorkers();
 
@@ -175,7 +178,7 @@ void StarterBot::sendIdleWorkersToMinerals()
         if (unit->getType() == BWAPI::UnitTypes::Protoss_Nexus)
         {
             // we get all the mineral fields near our base
-            myResources = unit->getUnitsInRadius(512, BWAPI::Filter::IsMineralField);
+            myResources = unit->getUnitsInRadius(350, BWAPI::Filter::IsMineralField);
             // we get all the workers that are at base and are idle
             myWorkers = unit->getUnitsInRadius(512, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
         }
@@ -521,6 +524,7 @@ void StarterBot::trainAdditionalWorkers()
 
 void StarterBot::buildCannon()
 {
+    if(attackhandler->enemyDetectedAtBase()){ return;}
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
 
     BWAPI::Unitset myWorkers;
@@ -533,11 +537,12 @@ void StarterBot::buildCannon()
             buildingLocations.push_back({ unit->getTilePosition() });
             myWorkers = unit->getUnitsInRadius(512, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
         }
-        if ((unit->getType() == BWAPI::UnitTypes::Protoss_Gateway) || (unit->getType() == BWAPI::UnitTypes::Protoss_Forge) || (unit->getType() == BWAPI::UnitTypes::Protoss_Assimilator) || (unit->getType() == BWAPI::UnitTypes::Protoss_Cybernetics_Core))
+        if ((unit->getType() == BWAPI::UnitTypes::Protoss_Gateway)|| (unit->getType() == BWAPI::UnitTypes::Protoss_Pylon) || (unit->getType() == BWAPI::UnitTypes::Protoss_Forge) || (unit->getType() == BWAPI::UnitTypes::Protoss_Assimilator) || (unit->getType() == BWAPI::UnitTypes::Protoss_Cybernetics_Core))
         {
             buildingLocations.push_back({ unit->getTilePosition() });
         }
     }
+   
     int count = 0;
     for (auto& unit : myWorkers)
     {
@@ -555,6 +560,37 @@ void StarterBot::buildCannon()
             }
         }
     }
+    
+   
+}
+
+void StarterBot::continueGatewayProduction()
+{
+    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+    int minerals = BWAPI::Broodwar->self()->minerals();
+    int gas = BWAPI::Broodwar->self()->gas();
+
+    for (auto& unit : myUnits)
+    {
+        if ((unit->getType() == BWAPI::UnitTypes::Protoss_Gateway) && unit->isIdle())
+        {
+            if (ZealotOrDragoon == 0 && minerals > 100) {
+                const bool started = unit->build(BWAPI::UnitTypes::Protoss_Zealot);
+                if (started) {
+                    ZealotOrDragoon = 1;
+                    return;
+                }
+            }
+            if (ZealotOrDragoon == 1 && minerals > 125 && gas > 50)
+            {
+                const bool started = unit->build(BWAPI::UnitTypes::Protoss_Dragoon);
+                if (started) {
+                    ZealotOrDragoon = 0;
+                    return;
+                }
+            }
+        }
+    }
 }
 
 // Build more supply if we are going to run out soon
@@ -563,8 +599,6 @@ void StarterBot::buildAdditionalSupply()
     int minerals = BWAPI::Broodwar->self()->minerals();
     int gas = BWAPI::Broodwar->self()->gas();
 
-    // "0" for building Zealot, "1" for building Dragoon
-    int currentBuild = 0;
     int NumberOfBuildCompleted = 0;
 
     for (int i = 0; i < buildOrder.size(); i++) {
@@ -577,11 +611,14 @@ void StarterBot::buildAdditionalSupply()
     if (NumberOfBuildCompleted == buildOrder.size()) {
 
         //We build cannons near every building if possible
-        buildCannon();
-
+        continueGatewayProduction();
         const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
         const int unusedSupply = Tools::GetTotalSupply(true) - BWAPI::Broodwar->self()->supplyUsed();
-        if (unusedSupply >= 2) { return; }
+        if (unusedSupply >= 2)
+        {
+            buildCannon();
+            return;
+        }
 
         const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
 
@@ -590,6 +627,7 @@ void StarterBot::buildAdditionalSupply()
         {
             BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
         }
+        
     }
 }
 

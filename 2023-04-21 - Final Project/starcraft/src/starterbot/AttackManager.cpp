@@ -23,8 +23,15 @@ void AttackManager::attackEnemyAtBase()
     BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Defending base");
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
     std::vector<BWAPI::Unit> attackingUnits;
+    std::vector<BWAPI::Unit> safeWorkers;
+    int count = 0;
     for (auto& unit : myUnits)
     {
+        if (unit->getType().isWorker() && count < 10) {
+            safeWorkers.push_back(unit);
+            count++;
+            continue;
+        }
         // If the unit is a combat unit and is not already attacking, add to attacking queue
         if (unit->getType().canAttack() && !unit->isAttacking())
         {
@@ -80,8 +87,6 @@ bool AttackManager::enemyDetectedAtBase()
 
 void AttackManager::attackNearbyEnemyUnits(BWAPI::Unit unit)
 {
-    ;
-    BWAPI::TilePosition unit_location(unit->getPosition());
     auto enemyUnits = unit->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
     for (auto& e_unit : enemyUnits)
     {

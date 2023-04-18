@@ -29,6 +29,7 @@ public:
 	void getBuildOrder();
 	void sendThreeWorkersToCollectGas(BWAPI::Unit refinery);
 	void buildCannon();
+	void continueGatewayProduction();
 
     // functions that are triggered by various BWAPI events from main.cpp
 	void onStart();
