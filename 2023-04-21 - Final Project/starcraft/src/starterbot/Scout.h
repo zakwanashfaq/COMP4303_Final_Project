@@ -6,6 +6,17 @@
 #include "GlobalManager.h"
 
 
+struct ResourceList
+{
+	int countOfMinerals;
+	BWAPI::Position location;
+
+	ResourceList() 
+		: countOfMinerals(0) 
+	{
+	}
+};
+
 class ScoutManager
 {
 	GlobalManager*							globalManager;
@@ -22,6 +33,8 @@ class ScoutManager
 	bool									enemyFound = false;
 	std::map<int, BWAPI::Position>			lastKnownEnemyUnitLocations;
 	std::map<int, std::string>				lastKnownEnemyUnitNames;
+	std::vector<ResourceList *>				expansionLocations;
+	BWAPI::Position							bestExpansionLocation;
 	// specific task functions
 	void checkIfEnemyFound();
 	void updateLastKnownEnemyUnitLocations();
@@ -30,6 +43,8 @@ class ScoutManager
 	void detectEnemyUnits();
 	void retreatScout();
 	void checkIfScoutIsAtBase();
+	void checkForResources();
+	void calculateBestPlaceForExapnsion();
 	void scoutRoam();
 	void traverseMap(int startX, int endX, int stepX, int startY, int endY, int stepY);
 	int	getPlayerMapPositionByQuadrent();
