@@ -67,6 +67,7 @@ void ScoutManager::detectEnemyBuildings()
 			globalManager->enemyLocation = BWAPI::TilePosition(ePos);
 			scoutStatus = "enemy_found";
 			// (not needed as of now) todo: narrow down search space and do more enemy base exploration
+			calculateBestPlaceForExapnsion();
 		}
 	}
 }
@@ -93,7 +94,7 @@ void ScoutManager::detectEnemyUnits()
 				globalManager->scoutStatus = "enemy_found";
 				globalManager->enemyLocation = BWAPI::TilePosition(ePos);
 				scoutStatus = "enemy_found";
-				// (not needed as of now) todo: narrow down search space and do more enemy base exploration
+				calculateBestPlaceForExapnsion();
 			}
 		}
 	}
@@ -102,12 +103,16 @@ void ScoutManager::detectEnemyUnits()
 	{
 		if (unit->getPlayer()->isEnemy(BWAPI::Broodwar->self()))
 		{
-			if (unit->getType().canAttack() || unit->getType().isSpellcaster())
+			if (scout && scout->exists() && scout->isUnderAttack())
 			{
 				scoutStatus = "retreat";
 			}
 			else
 			{
+				/*if (unit->getType().canAttack() || unit->getType().isSpellcaster())
+				{
+					scoutStatus = "retreat";
+				}*/
 				scout->attack(unit);
 			}
 		}
@@ -136,6 +141,53 @@ void ScoutManager::checkIfScoutIsAtBase()
 	}
 }
 
+void ScoutManager::checkForResources()
+{
+	if (!scout) // avoiding scout nullptr error when no scout is present
+	{
+		return;
+	}
+	BWAPI::Position scoutPosition = scout->getPosition();
+	BWAPI::Unitset nearbyUnits = BWAPI::Broodwar->getUnitsInRadius(scoutPosition, 5000);
+
+	ResourceList* rObj = new ResourceList();
+	for (auto& unit : nearbyUnits)
+	{
+		rObj->location = unit->getPosition();
+		// Check if the unit is a resource 
+		if (unit->getType().isMineralField())
+		{
+			// increase the resource count
+			rObj->countOfMinerals++;
+		}
+	}
+	expansionLocations.push_back(rObj);
+}
+
+void ScoutManager::calculateBestPlaceForExapnsion()
+{
+	double bestScore = -std::numeric_limits<double>::max(); // max negative val
+
+	for (const auto& expansion : expansionLocations)
+	{
+		auto playerLocation = globalManager->playerLocation;
+		auto expansionLocation = BWAPI::TilePosition(expansion->location);
+		double distanceToPlayer = playerLocation.getDistance(expansionLocation);
+		double distanceToEnemy = enemyLocation.getDistance(expansionLocation);
+		if (distanceToPlayer < 50.00)
+		{
+			continue;
+		}
+		double score = distanceToEnemy - distanceToPlayer;
+		if (score > bestScore)
+		{
+			bestScore = score;
+			bestExpansionLocation = expansion->location;
+		}
+	}
+
+}
+
 void ScoutManager::scoutRoam()
 {
 	int playerQuadrant = getPlayerMapPositionByQuadrent();
@@ -147,7 +199,7 @@ void ScoutManager::scoutRoam()
 	{
 		int startX, endX, stepX;
 		int startY, endY, stepY;
-		int stepSize = 5;
+		int stepSize = map->width() / 12;
 		switch (playerQuadrant)
 		{
 		case 1:
@@ -205,7 +257,7 @@ void ScoutManager::traverseMap(int startX, int endX, int stepX, int startY, int 
 			bool isWalkable = map->isWalkable(x, y);
 			bool explored = map->isExplored(x, y);
 			int mapVal = scoutMap->get(x, y);
-			if (isWalkable && (!explored && (mapVal < 700)))
+			if (isWalkable && (!explored && (mapVal < 400)))
 			{
 				exploringHash[locationEncoding] = true;
 				scout->move(BWAPI::Position(BWAPI::TilePosition(x, y)));
@@ -261,6 +313,7 @@ ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerIn
 void ScoutManager::update()
 {
 	checkIfEnemyFound();
+	checkForResources();
 	detectEnemyUnits();
 	drawCirclesInMiniMap();
 	if (scout)
@@ -283,10 +336,31 @@ void ScoutManager::update()
 			scout == nullptr;
 		}
 	}
-	else if (!enemyFound)
+	// case if scout died before finding enemy
+	else if (!enemyFound && !(scout && scout->exists()))
 	{
-		scoutStatus = "None";
-		scout == nullptr;
+		scoutStatus = "exploring";
+		const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+		for (auto& unit : myUnits)
+		{
+			
+			if (unit->getType().isWorker() && unit->isGatheringMinerals())
+			{
+				scout = unit;
+				break;
+			}
+		}
+	}
+
+	if ((bestExpansionLocation.x != 0) && (bestExpansionLocation.y != 0))
+	{
+		BWAPI::Broodwar->drawCircleMap(bestExpansionLocation, 40, BWAPI::Colors::Yellow);
+		BWAPI::Broodwar->drawCircleMap(bestExpansionLocation, 45, BWAPI::Colors::Yellow);
+		BWAPI::Broodwar->drawCircleMap(bestExpansionLocation, 50, BWAPI::Colors::Yellow);
+		BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 50), "Expansion Location Found!");
+		BWAPI::TilePosition BELTilePos(bestExpansionLocation);
+		std::string locationStr = "Location: " + std::to_string(BELTilePos.x) + ", " + std::to_string(BELTilePos.y);
+		BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 60), locationStr.c_str());
 	}
 }
 
