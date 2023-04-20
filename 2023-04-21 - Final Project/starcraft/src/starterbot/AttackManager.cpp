@@ -68,8 +68,11 @@ void AttackManager::attackAtEnemyBaseLocation()
     // moving attacking units to move to the enemy base
     for (auto& unit : attackingUnits)
     {
-        unit->attack(BWAPI::Position(globalManager->enemyLocation));
-        attackNearbyEnemyUnits(unit);
+        unit->move(BWAPI::Position(globalManager->enemyLocation));
+        if (!unit->isAttacking())
+        {
+            attackNearbyEnemyUnits(unit);
+        }
     }
     attackEnemyBase = false;
 }
@@ -92,26 +95,64 @@ bool AttackManager::enemyDetectedAtBase()
     return false;
 }
 
+//void AttackManager::attackNearbyEnemyUnits(BWAPI::Unit unit)
+//{
+//    
+//    BWAPI::TilePosition unit_location(unit->getPosition());
+//    auto enemyUnits = unit->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
+//    for (auto& e_unit : enemyUnits)
+//    {
+//        if ((e_unit->getHitPoints() > 0) && !e_unit->getType().isBuilding())
+//        {
+//            unit->attack(e_unit);
+//            return;
+//        }
+//        else if ((e_unit->getHitPoints() > 0))
+//        {
+//            unit->attack(e_unit);
+//            return;
+//        }
+//    }
+//
+//}
+
 void AttackManager::attackNearbyEnemyUnits(BWAPI::Unit unit)
 {
-    ;
     BWAPI::TilePosition unit_location(unit->getPosition());
     auto enemyUnits = unit->getUnitsInRadius(600, BWAPI::Filter::IsEnemy);
+
+    BWAPI::Unit attackTarget = nullptr;
+
     for (auto& e_unit : enemyUnits)
     {
         if ((e_unit->getHitPoints() > 0) && !e_unit->getType().isBuilding())
         {
-            unit->attack(e_unit);
-            return;
+            // If a unit that can attack back is found, attack it immediately
+            if (e_unit->getType().groundWeapon() != BWAPI::WeaponTypes::None || e_unit->getType().airWeapon() != BWAPI::WeaponTypes::None)
+            {
+                unit->attack(e_unit);
+                return;
+            }
+            // If no attackTarget is set yet and the unit can't attack back, set it as the target
+            else if (!attackTarget)
+            {
+                attackTarget = e_unit;
+            }
         }
-        else if ((e_unit->getHitPoints() > 0))
+        // If no other attackTarget is set and a building is found, set it as the target
+        else if ((e_unit->getHitPoints() > 0) && !attackTarget)
         {
-            unit->attack(e_unit);
-            return;
+            attackTarget = e_unit;
         }
     }
 
+    // If an attack target is set, attack it
+    if (attackTarget)
+    {
+        unit->attack(attackTarget);
+    }
 }
+
 
 void AttackManager::setAttackEnemyStatus(bool attackBool)
 {
