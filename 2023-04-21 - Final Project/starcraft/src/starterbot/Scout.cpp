@@ -109,15 +109,68 @@ void ScoutManager::detectEnemyUnits()
 			}
 			else
 			{
-				/*if (unit->getType().canAttack() || unit->getType().isSpellcaster())
-				{
-					scoutStatus = "retreat";
-				}*/
 				scout->attack(unit);
 			}
 		}
 	}
-	// return false;
+}
+
+void ScoutManager::detectChokePoint()
+{
+	BWAPI::TilePosition playerLocation = globalManager->playerLocation;
+	BWAPI::TilePosition enemyLocation = globalManager->enemyLocation;
+
+	// openList and closed list
+	std::priority_queue<std::shared_ptr<TileNode>, std::vector<std::shared_ptr<TileNode>>, CompareNode> openList;
+	std::vector<std::shared_ptr<TileNode>> closedList;
+
+	TileNode startNode(playerLocation, 0, 0, NULL);
+	openList.push(std::make_shared<TileNode>(startNode));
+	std::vector<BWAPI::TilePosition> path;
+	bool goalFound = false;
+
+	while ((openList.size() > 0) && !goalFound)
+	{
+		// add node to closed list and pop node from open list and store it in a variable
+		std::shared_ptr<TileNode> currentNode = openList.top();
+		openList.pop();
+		closedList.push_back(currentNode);
+
+		// check if goal node, if goal node, set goalFound to true
+		if (currentNode->tile == enemyLocation)
+		{
+			goalFound = true;
+			break;
+		}
+		// find path to goal node
+		if (goalFound)
+		{
+			std::shared_ptr<TileNode> currentNode = closedList.back();
+			while (currentNode)
+			{
+				path.push_back(currentNode->tile);
+				// converting raw pointer to shared pointer
+				std::shared_ptr<TileNode> tempNode(currentNode->parent);
+				currentNode = tempNode;
+			}
+			std::reverse(path.begin(), path.end());
+		}
+
+		// expand each node, check if its valid
+		// if valid find stateEvaluation value by using evaluateTileNode
+		// the add to openList
+	}
+
+
+}
+
+int ScoutManager::evaluateTileNode(TileNode node)
+{
+	BWAPI::TilePosition tileLocation = node.tile;
+	BWAPI::TilePosition enemyLocation = globalManager->enemyLocation;
+	int distance = tileLocation.getDistance(enemyLocation);
+	int maxEstimatedVal = 84659; // a random max number to compare and contrast
+	return maxEstimatedVal - distance;
 }
 
 void ScoutManager::retreatScout()
@@ -351,6 +404,11 @@ int ScoutManager::getPlayerMapPositionByQuadrent()
 		// startingBasePosition.x >= centerX && startingBasePosition.y >= centerY
 		return 4;
 	}
+}
+
+bool ScoutManager::isWalkable(BWAPI::TilePosition tile)
+{
+	return BWAPI::Broodwar->getTileData()[tile.x][tile.y].getWalkable();
 }
 
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
