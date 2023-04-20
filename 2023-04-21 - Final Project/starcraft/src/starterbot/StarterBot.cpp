@@ -6,6 +6,7 @@
 std::deque<std::pair<int, std::string>> buildOrder;
 // we set the state of all build order to false initially
 bool isBuild[20] = { false };
+bool isBaseAttacked = false;
 
 StarterBot::StarterBot()
 {
@@ -41,9 +42,15 @@ void StarterBot::onFrame()
     scouthandler->update();
     attackhandler->update();
     // send attack after specific number of probes being built
-    int num_of_probes_to_attack = 40;
-    if (getCountByUnitType(BWAPI::UnitTypes::Protoss_Probe) > num_of_probes_to_attack && (globalManger->scoutStatus == "enemy_found"))
-    {
+
+    if (attackhandler->enemyDetectedAtBase()) {
+        isBaseAttacked = true;
+    }
+    if (isBaseAttacked && (globalManger->scoutStatus == "enemy_found") && !(attackhandler->enemyDetectedAtBase()) && readyForAttack(20)) {
+        BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
+        attackhandler->setAttackEnemyStatus(true);
+    }
+    if ((globalManger->scoutStatus == "enemy_found") && readyForAttack(30)) {
         BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 55), "Attacking enemy!");
         attackhandler->setAttackEnemyStatus(true);
     }
@@ -153,6 +160,33 @@ bool StarterBot::isAreaBuildable(BWAPI::TilePosition pos, int width, int height)
     return true;
 }
 
+bool StarterBot::readyForAttack(int Size)
+{
+    auto myUnits = BWAPI::Broodwar->self()->getUnits();
+    BWAPI::Unitset myWorkers;
+    for (auto& unit : myUnits)
+    {
+
+        if (unit->getType() == BWAPI::UnitTypes::Protoss_Nexus)
+        {
+            // we get all the workers that are at base and are idle
+            myWorkers = unit->getUnitsInRadius(600, BWAPI::Filter::CanAttack && BWAPI::Filter::IsOwned && !(BWAPI::Filter::IsWorker));
+        }
+    }
+
+    int NumberOfBuildCompleted = 0;
+    for (int i = 0; i < buildOrder.size(); i++) {
+        if (isBuild[i] == true) {
+            NumberOfBuildCompleted++;
+        }
+    }
+
+    if (myWorkers.size() > Size && (NumberOfBuildCompleted == buildOrder.size())) {
+        return true;
+    }
+    return false;
+}
+
 void StarterBot::scoutForEnemyBase()
 {
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
@@ -179,8 +213,11 @@ void StarterBot::sendIdleWorkersToMinerals()
         {
             // we get all the mineral fields near our base
             myResources = unit->getUnitsInRadius(350, BWAPI::Filter::IsMineralField);
+            if (myResources.size() == 0) {
+                myResources = unit->getUnitsInRadius(350 * 8, BWAPI::Filter::IsMineralField);
+            }
             // we get all the workers that are at base and are idle
-            myWorkers = unit->getUnitsInRadius(512, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
+            myWorkers = unit->getUnitsInRadius(600, BWAPI::Filter::IsWorker && BWAPI::Filter::IsIdle && BWAPI::Filter::IsOwned);
         }
 
     }
@@ -439,64 +476,6 @@ void StarterBot::buildOrderProduction()
                     break;
                 }
             }
-            if (buildOrder[i].second == "citadel_of_adun")
-            {
-                if (minerals > 150 && gas > 100)
-                {
-                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Citadel_of_Adun);
-                    if (startedBuilding)
-                    {
-                        BWAPI::Broodwar->printf("Started Building Protoss_Citadel_of_Adun");
-                        isBuild[i] = true;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-            if (buildOrder[i].second == "templar_archives")
-            {
-                if (minerals > 150 && gas > 200)
-                {
-                    const bool startedBuilding = Tools::BuildBuilding(BWAPI::UnitTypes::Protoss_Templar_Archives);
-                    if (startedBuilding)
-                    {
-                        BWAPI::Broodwar->printf("Started Building Protoss_Templar_Archives");
-                        isBuild[i] = true;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-            if (buildOrder[i].second == "dark_templar") {
-                if (minerals > 125 && gas > 100) {
-                    int count = 0;
-                    for (auto& unit : myUnits)
-                    {
-                        if (count < 1)
-                        {
-                            if (unit->getType() == BWAPI::UnitTypes::Protoss_Gateway && unit->isIdle())
-                            {
-                                const bool startedBuilding = unit->build(BWAPI::UnitTypes::Protoss_Dark_Templar);
-                                if (startedBuilding)
-                                {
-                                    isBuild[i] = true;
-                                    count++;
-                                }
-
-                            }
-                        }
-                    }
-
-                }
-                else
-                {
-                    break;
-                }
-            }
         }
     }
 
@@ -528,6 +507,7 @@ void StarterBot::buildCannon()
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
 
     BWAPI::Unitset myWorkers;
+    int numberOfCannons = 0;
     std::deque<BWAPI::TilePosition> buildingLocations;
     for (auto& unit : myUnits)
     {
@@ -541,27 +521,56 @@ void StarterBot::buildCannon()
         {
             buildingLocations.push_back({ unit->getTilePosition() });
         }
+        if ((unit->getType() == BWAPI::UnitTypes::Protoss_Photon_Cannon)) {
+            numberOfCannons++;
+        }
     }
+    if (numberOfCannons < 8) {
+        int count = 0;
+        for (auto& unit : myWorkers)
+        {
+            if (count < 1) {
+                for (size_t j = 0; j < buildingLocations.size(); j++)
+                {
+                    const int x = buildingLocations[j].x + 3;
+                    const int y = buildingLocations[j].y + 3;
+                    const bool started = unit->build(BWAPI::UnitTypes::Protoss_Photon_Cannon, BWAPI::TilePosition(x, y));
+                    if (started) {
+                        // BWAPI::Broodwar->printf("Started Building Protoss_Photon_Cannon");
+                        count++;
+                    }
 
-    int count = 0;
-    for (auto& unit : myWorkers)
-    {
-        if (count < 1) {
-            for (size_t j = 0; j < buildingLocations.size(); j++)
-            {
-                const int x = buildingLocations[j].x + 3;
-                const int y = buildingLocations[j].y + 3;
-                const bool started = unit->build(BWAPI::UnitTypes::Protoss_Photon_Cannon, BWAPI::TilePosition(x, y));
-                if (started) {
-                    BWAPI::Broodwar->printf("Started Building Protoss_Photon_Cannon");
-                    count++;
                 }
-
             }
         }
     }
+}
 
-
+void StarterBot::buildGateway()
+{
+    const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+    int minerals = BWAPI::Broodwar->self()->minerals();
+    int numberOfGateways = 0;
+    for (auto& unit : myUnits)
+    {
+        if ((unit->getType() == BWAPI::UnitTypes::Protoss_Gateway))
+        {
+            numberOfGateways++;
+        }
+    }
+    int count = 0;
+    if (numberOfGateways < 4 && minerals > 150) {
+        for (auto& unit : myUnits)
+        {
+            if (unit->getType().isWorker() && unit->isIdle() && count < 1) {
+                const bool started = unit->build(BWAPI::UnitTypes::Protoss_Gateway);
+                if (started) {
+                    BWAPI::Broodwar->printf("Started Building Protoss_Gateway");
+                    count++;
+                }
+            }
+        }
+    }
 }
 
 void StarterBot::continueGatewayProduction()
@@ -569,19 +578,19 @@ void StarterBot::continueGatewayProduction()
     const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
     int minerals = BWAPI::Broodwar->self()->minerals();
     int gas = BWAPI::Broodwar->self()->gas();
-    int ZealotOrDragoon = rand() % 3;
+    int ZealotOrDragoon = rand() % 100;
 
     for (auto& unit : myUnits)
     {
         if ((unit->getType() == BWAPI::UnitTypes::Protoss_Gateway) && unit->isIdle())
         {
-            if ((ZealotOrDragoon == 0 || ZealotOrDragoon == 1) && minerals > 100) {
+            if ((ZealotOrDragoon > 30) && minerals > 100) {
                 const bool started = unit->build(BWAPI::UnitTypes::Protoss_Zealot);
                 if (started) {
                     return;
                 }
             }
-            if (ZealotOrDragoon == 1 && minerals > 125 && gas > 50)
+            if (ZealotOrDragoon <=30 && minerals > 125 && gas > 50)
             {
                 const bool started = unit->build(BWAPI::UnitTypes::Protoss_Dragoon);
                 if (started) {
@@ -607,15 +616,16 @@ void StarterBot::buildAdditionalSupply()
 
         const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
         const int unusedSupply = Tools::GetTotalSupply(true) - BWAPI::Broodwar->self()->supplyUsed();
-        if (unusedSupply >= 2) { return; }
+        if (unusedSupply < 2) {
+            const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
 
-        const BWAPI::UnitType supplyProviderType = BWAPI::Broodwar->self()->getRace().getSupplyProvider();
-
-        const bool startedBuilding = Tools::BuildBuilding(supplyProviderType);
-        if (startedBuilding)
-        {
-            BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
+            const bool startedBuilding = Tools::BuildBuilding(supplyProviderType);
+            if (startedBuilding)
+            {
+                BWAPI::Broodwar->printf("Started Building %s", supplyProviderType.getName().c_str());
+            }
         }
+       
     }
 }
 
@@ -635,17 +645,15 @@ void StarterBot::ruleBasedSystem()
 
     // If build order is completed, we can use rule based system
     if (NumberOfBuildCompleted == buildOrder.size()) {
-
-        //We build cannons near every building if possible
         continueGatewayProduction();
-        const int unusedSupply = Tools::GetTotalSupply(true) - BWAPI::Broodwar->self()->supplyUsed();
-        if (unusedSupply >= 2)
-        {
+        int randomNumber = rand() % 2;
+        //We build cannons near every building if possible
+        if (randomNumber == 0) {
             buildCannon();
-            return;
         }
-
-       
+        if (randomNumber == 1) {
+            buildGateway();
+        }
     }
 }
 

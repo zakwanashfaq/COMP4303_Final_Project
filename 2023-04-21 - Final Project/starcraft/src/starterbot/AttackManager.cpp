@@ -23,8 +23,15 @@ void AttackManager::attackEnemyAtBase()
     BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 85), "Defending base");
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
     std::vector<BWAPI::Unit> attackingUnits;
+    std::vector<BWAPI::Unit> keepWorkersForProduction;
+    int count = 0;
     for (auto& unit : myUnits)
     {
+        if (unit->getType().isWorker() && unit->isGatheringMinerals() && count < 5) {
+            keepWorkersForProduction.push_back(unit);
+            count++;
+            continue;
+        }
         // If the unit is a combat unit and is not already attacking, add to attacking queue
         if (unit->getType().canAttack() && !unit->isAttacking())
         {
@@ -43,26 +50,33 @@ void AttackManager::attackAtEnemyBaseLocation()
 {
     auto myUnits = BWAPI::Broodwar->self()->getUnits();
     std::vector<BWAPI::Unit> attackingUnits;
+    std::vector<BWAPI::Unit> keepWorkersForProduction;
+    int count = 0;
     for (auto& unit : myUnits)
     {
+        if (unit->getType().isWorker() && unit->isGatheringMinerals() && count < 10) {
+            keepWorkersForProduction.push_back(unit);
+            count++;
+            continue;
+        }
         // If the unit is a combat unit and is not already attacking, add to attacking queue
         if (unit->getType().canAttack() && !unit->isAttacking())
         {
             attackingUnits.push_back(unit);
         }
     }
-
     // moving attacking units to move to the enemy base
     for (auto& unit : attackingUnits)
     {
         unit->attack(BWAPI::Position(globalManager->enemyLocation));
         attackNearbyEnemyUnits(unit);
     }
+    attackEnemyBase = false;
 }
 
 bool AttackManager::enemyDetectedAtBase()
 {
-    
+
     BWAPI::TilePosition my_location = BWAPI::Broodwar->self()->getStartLocation();
     BWAPI::Unit playerMainBuilding = BWAPI::Broodwar->getClosestUnit(BWAPI::Position(my_location), BWAPI::Filter::IsResourceDepot);
     if (playerMainBuilding)
@@ -96,7 +110,7 @@ void AttackManager::attackNearbyEnemyUnits(BWAPI::Unit unit)
             return;
         }
     }
-    
+
 }
 
 void AttackManager::setAttackEnemyStatus(bool attackBool)

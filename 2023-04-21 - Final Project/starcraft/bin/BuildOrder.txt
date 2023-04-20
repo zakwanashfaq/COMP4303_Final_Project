@@ -16,5 +16,5 @@
 24 pylon
 25 zealot
 25 zealot
-26 gateway
-28 photon_cannon
+26 photon_cannon
+28 gateway
