@@ -35,6 +35,7 @@ class ScoutManager
 	std::map<int, std::string>				lastKnownEnemyUnitNames;
 	std::vector<ResourceList *>				expansionLocations;
 	BWAPI::Position							bestExpansionLocation;
+	bool									expansionBaseBuildDispatched = false;
 	// specific task functions
 	void checkIfEnemyFound();
 	void updateLastKnownEnemyUnitLocations();
@@ -44,6 +45,7 @@ class ScoutManager
 	void retreatScout();
 	void checkIfScoutIsAtBase();
 	void checkForResources();
+	void buildExpansionBase();
 	void calculateBestPlaceForExapnsion();
 	void scoutRoam();
 	void traverseMap(int startX, int endX, int stepX, int startY, int endY, int stepY);
