@@ -30,7 +30,9 @@ public:
 	void sendThreeWorkersToCollectGas(BWAPI::Unit refinery);
 	void ruleBasedSystem();
 	void buildCannon();
+	void buildGateway();
 	void continueGatewayProduction();
+	bool readyForAttack(int Size);
 
 	// functions that are triggered by various BWAPI events from main.cpp
 	void onStart();
