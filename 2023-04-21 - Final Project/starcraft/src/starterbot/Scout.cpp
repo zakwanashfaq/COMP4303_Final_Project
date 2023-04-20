@@ -164,6 +164,42 @@ void ScoutManager::checkForResources()
 	expansionLocations.push_back(rObj);
 }
 
+void ScoutManager::buildExpansionBase()
+{
+	const int expansionBaseCost = BWAPI::Broodwar->self()->getRace().getResourceDepot().mineralPrice();
+	const int availableMinerals = BWAPI::Broodwar->self()->minerals();
+
+	if (availableMinerals > expansionBaseCost)
+	{
+		BWAPI::Unit worker;
+		bool workerFound = false;
+		int resourceDepotCount = 0;
+		const BWAPI::Unitset& myUnits = BWAPI::Broodwar->self()->getUnits();
+		for (auto& unit : myUnits)
+		{
+			if (unit->getType().isWorker() && !(unit->isConstructing()) && !workerFound && !expansionBaseBuildDispatched)
+			{
+				worker = unit;
+				workerFound = true;
+			}
+			if (unit->getType().isResourceDepot())
+			{
+				resourceDepotCount++;
+			}
+		}
+
+		if (workerFound && worker && (resourceDepotCount < 2))
+		{
+			bool isValidLocation = bestExpansionLocation.isValid();
+			if (isValidLocation)
+			{
+				worker->build(BWAPI::Broodwar->self()->getRace().getResourceDepot(), BWAPI::TilePosition(bestExpansionLocation));
+				expansionBaseBuildDispatched = true;
+			}
+		}
+	}
+}
+
 void ScoutManager::calculateBestPlaceForExapnsion()
 {
 	double bestScore = -std::numeric_limits<double>::max(); // max negative val
@@ -186,6 +222,22 @@ void ScoutManager::calculateBestPlaceForExapnsion()
 		}
 	}
 
+	// finding a valid build location by traversing tiles nearby
+	BWAPI::UnitType resourceDepotType = BWAPI::Broodwar->self()->getRace().getResourceDepot();
+	int r = 10;
+	for (int x = -r; x <= r; x++)
+	{
+		for (int y = -r; y <= r; y++)
+		{
+			BWAPI::TilePosition temporaryLocation(bestExpansionLocation.x + x, bestExpansionLocation.y + y);
+
+			if (BWAPI::Broodwar->canBuildHere(temporaryLocation, resourceDepotType))
+			{
+				bestExpansionLocation = BWAPI::Position(temporaryLocation);
+				break;
+			}
+		}
+	}
 }
 
 void ScoutManager::scoutRoam()
@@ -202,39 +254,39 @@ void ScoutManager::scoutRoam()
 		int stepSize = map->width() / 12;
 		switch (playerQuadrant)
 		{
-		case 1:
-			startX = map->width() - 1;
-			endX = 0;
-			stepX = -1 * stepSize;
-			startY = map->height() - 1;
-			endY = 0;
-			stepY = -1 * stepSize;
-			break;
-		case 2:
-			startX = 0;
-			endX = map->width() - 1;
-			stepX = stepSize;
-			startY = map->height() - 1;
-			endY = 0;
-			stepY = -1 * stepSize;
-			break;
-		case 3:
-			startX = map->width() - 1;
-			endX = 0;
-			stepX = -1 * stepSize;
-			startY = 0;
-			endY = map->height() - 1;
-			stepY = stepSize;
-			break;
-		case 4:
-		default:
-			startX = 0;
-			endX = map->width() - 1;
-			stepX = stepSize;
-			startY = 0;
-			endY = map->height() - 1;
-			stepY = stepSize;
-			break;
+			case 1:
+				startX = map->width() - 1;
+				endX = 0;
+				stepX = -1 * stepSize;
+				startY = map->height() - 1;
+				endY = 0;
+				stepY = -1 * stepSize;
+				break;
+			case 2:
+				startX = 0;
+				endX = map->width() - 1;
+				stepX = stepSize;
+				startY = map->height() - 1;
+				endY = 0;
+				stepY = -1 * stepSize;
+				break;
+			case 3:
+				startX = map->width() - 1;
+				endX = 0;
+				stepX = -1 * stepSize;
+				startY = 0;
+				endY = map->height() - 1;
+				stepY = stepSize;
+				break;
+			case 4:
+			default:
+				startX = 0;
+				endX = map->width() - 1;
+				stepX = stepSize;
+				startY = 0;
+				endY = map->height() - 1;
+				stepY = stepSize;
+				break;
 		}
 
 		traverseMap(startX, endX, stepX, startY, endY, stepY);
@@ -361,6 +413,7 @@ void ScoutManager::update()
 		BWAPI::TilePosition BELTilePos(bestExpansionLocation);
 		std::string locationStr = "Location: " + std::to_string(BELTilePos.x) + ", " + std::to_string(BELTilePos.y);
 		BWAPI::Broodwar->drawTextScreen(BWAPI::Position(10, 60), locationStr.c_str());
+		buildExpansionBase();
 	}
 }
 
