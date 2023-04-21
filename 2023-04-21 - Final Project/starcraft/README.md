@@ -1,38 +1,38 @@
 # StarCraft Project Feature Checklist
-- [x] Chosen speciality is: _____
+- [x] Chosen speciality is: A-Star Algorithm that finds shortests path to enemy base and detects both players and enemy choke points
   - [ ] Specialty implemented successfully and demonstrated in video
-- [ ] Resource Gathering Basics
-  - [ ] All idle workers sent to gather minerals
-  - [ ] 3 workers placed in each gas refinery
-  - [ ] Max 2.5 workers per mineral patch in base
-- [ ] BuildOrder Production
-  - [ ] BuildOrder class parses text file
-  - [ ] BuildOrder queue works properly
-    - [ ] Loop monitors queue for next item to be built
-    - [ ] If resources available, check for builder unit
-    - [ ] If builder unit found, check build location (if required)
-    - [ ] If build location found, built unit and remove from queue
-    - [ ] Be sure to 'reserve' resources so items don't get skipped while building
-- [ ] Scouting
-  - [ ] All enemy units and their last positions recorded / drawn
-  - [ ] If enemy base is not known:
-    - [ ] Move toward next possible enemy location
-  - [ ] If enemy base is known:
-    - [ ] If outside enemy base, go toward it with scout
-    - [ ] If inside enemy base, attack enemy worker
-    - [ ] If worker attacks back or has defenses, retreat scout
-- [ ] Defense
-  - [ ] Enemy units in base detected, circle drawn around them
-  - [ ] Static defense structure constructed
-- [ ] Attack Timings
-  - [ ] Army units rallied after production
-  - [ ] Condition for attack calculated successfully
-  - [ ] Attack sent toward known enemy location
-  - [ ] Final enemy buildings found and destroyed
-- [ ] Expanding
-  - [ ] Natural Expansion location calculated and drawn to map
-  - [ ] Expansion built and demonstrated at least once for video
-- [ ] Succesfully default built-in AI sometimes
+- [x] Resource Gathering Basics
+  - [x] All idle workers sent to gather minerals
+  - [x] 3 workers placed in each gas refinery
+  - [x] Max 2.5 workers per mineral patch in base
+- [x] BuildOrder Production
+  - [x] BuildOrder class parses text file
+  - [x] BuildOrder queue works properly
+    - [x] Loop monitors queue for next item to be built
+    - [x] If resources available, check for builder unit
+    - [x] If builder unit found, check build location (if required)
+    - [x] If build location found, built unit and remove from queue
+    - [x] Be sure to 'reserve' resources so items don't get skipped while building
+- [x] Scouting
+  - [x] All enemy units and their last positions recorded / drawn
+  - [x] If enemy base is not known:
+    - [x] Move toward next possible enemy location
+  - [x] If enemy base is known:
+    - [x] If outside enemy base, go toward it with scoux
+    - [x] If inside enemy base, attack enemy worker
+    - [x] If worker attacks back or has defenses, retreat scout
+- [x] Defense
+  - [x] Enemy units in base detected, circle drawn around them
+  - [x] Static defense structure constructed
+- [x] Attack Timings
+  - [x] Army units rallied after production
+  - [x] Condition for attack calculated successfully
+  - [x] Attack sent toward known enemy location
+  - [x] Final enemy buildings found and destroyed
+- [x] Expanding
+  - [x] Natural Expansion location calculated and drawn to map
+  - [x] Expansion built and demonstrated at least once for video
+- [x] Succesfully default built-in AI sometimes. (I had one case of it beating the AI, rest of the time its plays well defence. Which is our specialty.)
 
 # StarCraft Project Feature Requirements
 
