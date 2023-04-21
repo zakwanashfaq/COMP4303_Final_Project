@@ -217,6 +217,11 @@ int ScoutManager::evaluateTileNode(std::shared_ptr<TileNode> node)
 	return maxEstimatedVal - distance;
 }
 
+bool ScoutManager::isValidAndBuildable(BWAPI::TilePosition tile)
+{
+	return false;
+}
+
 void ScoutManager::retreatScout()
 {
 	BWAPI::TilePosition startingBaseTilePosition = BWAPI::Broodwar->self()->getStartLocation();
