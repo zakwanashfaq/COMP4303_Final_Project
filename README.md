@@ -14,7 +14,7 @@
 ## Project Setup / Installation:
 
 ### Method 1:
-1) Go into `COMP4303_Final_Project\2023-04-21 - Final Project\starcraft\bin` and run `StarterBot`
+1) Go into `COMP4303_Final_Project\2023-04-21 - Final Project\starcraft\bin` and run `StarterBot_d`
 2) Then go into `COMP4303_Final_Project\STARTcraft\starcraft` and run `RunStarcraftWithBWAPI`
 
 ### Method 2:
