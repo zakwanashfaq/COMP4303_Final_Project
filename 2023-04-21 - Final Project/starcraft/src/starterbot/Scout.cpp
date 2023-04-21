@@ -136,15 +136,10 @@ void ScoutManager::detectChokePoint()
 		openList.pop();
 		closedList.push_back(currentNode);
 
-		// check if goal node, if goal node, set goalFound to true
+		// find path to goal node (found goal location)
 		if (currentNode->tile == enemyLocation)
 		{
 			goalFound = true;
-			break;
-		}
-		// find path to goal node
-		if (goalFound)
-		{
 			std::shared_ptr<TileNode> currentNode = closedList.back();
 			while (currentNode)
 			{
@@ -154,19 +149,68 @@ void ScoutManager::detectChokePoint()
 				currentNode = tempNode;
 			}
 			std::reverse(path.begin(), path.end());
+			break;
 		}
 
-		// expand each node, check if its valid
-		// if valid find stateEvaluation value by using evaluateTileNode
-		// the add to openList
+		// expand each node, check if it's valid
+		// if valid find state evaluation value by using evaluateTileNode
+		// then add to openList
+		// up node
+		std::shared_ptr<TileNode> upNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x, currentNode->tile.y - 1),
+			currentNode->cost + 1,
+			evaluateTileNode(upNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(upNode->tile))
+		{
+			openList.push(upNode);
+		}
+
+		// down node
+		std::shared_ptr<TileNode> downNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x, currentNode->tile.y + 1),
+			currentNode->cost + 1,
+			evaluateTileNode(downNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(downNode->tile))
+		{
+			openList.push(downNode);
+		}
+
+		// left node
+		std::shared_ptr<TileNode> leftNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x - 1, currentNode->tile.y),
+			currentNode->cost + 1,
+			evaluateTileNode(leftNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(leftNode->tile))
+		{
+			openList.push(leftNode);
+		}
+
+		// right node
+		std::shared_ptr<TileNode> rightNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x + 1, currentNode->tile.y),
+			currentNode->cost + 1,
+			evaluateTileNode(rightNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(rightNode->tile))
+		{
+			openList.push(rightNode);
+		}
+
 	}
 
 
 }
 
-int ScoutManager::evaluateTileNode(TileNode node)
+int ScoutManager::evaluateTileNode(std::shared_ptr<TileNode> node)
 {
-	BWAPI::TilePosition tileLocation = node.tile;
+	BWAPI::TilePosition tileLocation = node->tile;
 	BWAPI::TilePosition enemyLocation = globalManager->enemyLocation;
 	int distance = tileLocation.getDistance(enemyLocation);
 	int maxEstimatedVal = 84659; // a random max number to compare and contrast
@@ -406,10 +450,21 @@ int ScoutManager::getPlayerMapPositionByQuadrent()
 	}
 }
 
-bool ScoutManager::isWalkable(BWAPI::TilePosition tile)
-{
-	return BWAPI::Broodwar->getTileData()[tile.x][tile.y].getWalkable();
+bool isValidAndBuildable(BWAPI::TilePosition tile) {
+	// Check if tile position is valid position
+	if (!tile.isValid()) {
+		return false;
+	}
+
+	// Check if tile position is buildable
+	if (!BWAPI::Broodwar->isBuildable(tile)) {
+		return false;
+	}
+
+	// Tile position is valid and buildable
+	return true;
 }
+
 
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
 {

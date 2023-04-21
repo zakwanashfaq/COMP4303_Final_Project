@@ -68,7 +68,6 @@ class ScoutManager
 	void detectEnemyBuildings();
 	void detectEnemyUnits();
 	void detectChokePoint();
-	int  evaluateTileNode(TileNode node);
 	void retreatScout();
 	void checkIfScoutIsAtBase();
 	void checkForResources();
@@ -77,7 +76,8 @@ class ScoutManager
 	void scoutRoam();
 	void traverseMap(int startX, int endX, int stepX, int startY, int endY, int stepY);
 	int	getPlayerMapPositionByQuadrent();
-	bool isWalkable(BWAPI::TilePosition tile);
+	int  evaluateTileNode(std::shared_ptr<TileNode> node);
+	bool isValidAndBuildable(BWAPI::TilePosition tile);
 
 public:
 	ScoutManager(MapTools * mapInstance, GlobalManager* globalManagerInstance);
