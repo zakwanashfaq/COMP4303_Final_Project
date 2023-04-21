@@ -1,6 +1,6 @@
 # StarCraft Project Feature Checklist
 - [x] Chosen speciality is: A-Star Algorithm that finds shortests path to enemy base and detects both players and enemy choke points
-  - [ ] Specialty implemented successfully and demonstrated in video
+  - [ ] Specialty implemented successfully and demonstrated in video (partial implementation. Not Working)
 - [x] Resource Gathering Basics
   - [x] All idle workers sent to gather minerals
   - [x] 3 workers placed in each gas refinery
