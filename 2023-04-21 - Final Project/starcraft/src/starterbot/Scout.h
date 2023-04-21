@@ -1,10 +1,10 @@
 #pragma once
 #include <BWAPI.h>
+#include <queue>
 #include "Grid.hpp"
 #include <unordered_map>
 #include "MapTools.h"
 #include "GlobalManager.h"
-
 
 struct ResourceList
 {
@@ -14,6 +14,31 @@ struct ResourceList
 	ResourceList() 
 		: countOfMinerals(0) 
 	{
+	}
+};
+
+struct TileNode {
+	BWAPI::TilePosition tile;
+	int cost;
+	int stateEvaluationValue;
+	TileNode* parent;
+
+	TileNode(BWAPI::TilePosition tile, int cost, int stateEvaluationValue, TileNode* parent)
+		: tile(tile), cost(cost), stateEvaluationValue(stateEvaluationValue), parent(parent)
+	{}
+};
+
+struct CompareNode {
+	bool operator()(std::shared_ptr<TileNode> a, std::shared_ptr<TileNode> b) const {
+		if (a->cost > b->cost)
+		{
+			return true;
+		}
+		else if (a->cost == b->cost)
+		{
+			return a->stateEvaluationValue < b->stateEvaluationValue;
+		}
+		return false;
 	}
 };
 
@@ -42,6 +67,7 @@ class ScoutManager
 	void drawCirclesInMiniMap();
 	void detectEnemyBuildings();
 	void detectEnemyUnits();
+	void detectChokePoint();
 	void retreatScout();
 	void checkIfScoutIsAtBase();
 	void checkForResources();
@@ -50,6 +76,8 @@ class ScoutManager
 	void scoutRoam();
 	void traverseMap(int startX, int endX, int stepX, int startY, int endY, int stepY);
 	int	getPlayerMapPositionByQuadrent();
+	int  evaluateTileNode(std::shared_ptr<TileNode> node);
+	bool isValidAndBuildable(BWAPI::TilePosition tile);
 
 public:
 	ScoutManager(MapTools * mapInstance, GlobalManager* globalManagerInstance);

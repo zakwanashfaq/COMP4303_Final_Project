@@ -109,15 +109,117 @@ void ScoutManager::detectEnemyUnits()
 			}
 			else
 			{
-				/*if (unit->getType().canAttack() || unit->getType().isSpellcaster())
-				{
-					scoutStatus = "retreat";
-				}*/
 				scout->attack(unit);
 			}
 		}
 	}
-	// return false;
+}
+
+void ScoutManager::detectChokePoint()
+{
+	BWAPI::TilePosition playerLocation = globalManager->playerLocation;
+	BWAPI::TilePosition enemyLocation = globalManager->enemyLocation;
+
+	// openList and closed list
+	std::priority_queue<std::shared_ptr<TileNode>, std::vector<std::shared_ptr<TileNode>>, CompareNode> openList;
+	std::vector<std::shared_ptr<TileNode>> closedList;
+
+	TileNode startNode(playerLocation, 0, 0, NULL);
+	openList.push(std::make_shared<TileNode>(startNode));
+	std::vector<BWAPI::TilePosition> path;
+	bool goalFound = false;
+
+	while ((openList.size() > 0) && !goalFound)
+	{
+		// add node to closed list and pop node from open list and store it in a variable
+		std::shared_ptr<TileNode> currentNode = openList.top();
+		openList.pop();
+		closedList.push_back(currentNode);
+
+		// find path to goal node (found goal location)
+		if (currentNode->tile == enemyLocation)
+		{
+			goalFound = true;
+			std::shared_ptr<TileNode> currentNode = closedList.back();
+			while (currentNode)
+			{
+				path.push_back(currentNode->tile);
+				// converting raw pointer to shared pointer
+				std::shared_ptr<TileNode> tempNode(currentNode->parent);
+				currentNode = tempNode;
+			}
+			std::reverse(path.begin(), path.end());
+			break;
+		}
+
+		// expand each node, check if it's valid
+		// if valid find state evaluation value by using evaluateTileNode
+		// then add to openList
+		// up node
+		std::shared_ptr<TileNode> upNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x, currentNode->tile.y - 1),
+			currentNode->cost + 1,
+			evaluateTileNode(upNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(upNode->tile))
+		{
+			openList.push(upNode);
+		}
+
+		// down node
+		std::shared_ptr<TileNode> downNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x, currentNode->tile.y + 1),
+			currentNode->cost + 1,
+			evaluateTileNode(downNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(downNode->tile))
+		{
+			openList.push(downNode);
+		}
+
+		// left node
+		std::shared_ptr<TileNode> leftNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x - 1, currentNode->tile.y),
+			currentNode->cost + 1,
+			evaluateTileNode(leftNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(leftNode->tile))
+		{
+			openList.push(leftNode);
+		}
+
+		// right node
+		std::shared_ptr<TileNode> rightNode = std::make_shared<TileNode>(
+			BWAPI::TilePosition(currentNode->tile.x + 1, currentNode->tile.y),
+			currentNode->cost + 1,
+			evaluateTileNode(rightNode),
+			currentNode.get()
+		);
+		if (isValidAndBuildable(rightNode->tile))
+		{
+			openList.push(rightNode);
+		}
+
+	}
+
+
+}
+
+int ScoutManager::evaluateTileNode(std::shared_ptr<TileNode> node)
+{
+	BWAPI::TilePosition tileLocation = node->tile;
+	BWAPI::TilePosition enemyLocation = globalManager->enemyLocation;
+	int distance = tileLocation.getDistance(enemyLocation);
+	int maxEstimatedVal = 84659; // a random max number to compare and contrast
+	return maxEstimatedVal - distance;
+}
+
+bool ScoutManager::isValidAndBuildable(BWAPI::TilePosition tile)
+{
+	return false;
 }
 
 void ScoutManager::retreatScout()
@@ -352,6 +454,22 @@ int ScoutManager::getPlayerMapPositionByQuadrent()
 		return 4;
 	}
 }
+
+bool isValidAndBuildable(BWAPI::TilePosition tile) {
+	// Check if tile position is valid position
+	if (!tile.isValid()) {
+		return false;
+	}
+
+	// Check if tile position is buildable
+	if (!BWAPI::Broodwar->isBuildable(tile)) {
+		return false;
+	}
+
+	// Tile position is valid and buildable
+	return true;
+}
+
 
 ScoutManager::ScoutManager(MapTools* mapInstance, GlobalManager* globalManagerInstance)
 {
