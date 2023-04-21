@@ -1,4 +1,4 @@
-# COMP4303_Project_Name_Here
+# COMP4303 Starcraft AI Bot
 
 ## Project Group Members:
 
